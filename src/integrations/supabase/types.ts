@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      agent_commands: {
+        Row: {
+          command: string
+          created_at: string
+          created_by: string | null
+          executed_at: string | null
+          id: string
+          payload: Json
+          status: string
+        }
+        Insert: {
+          command: string
+          created_at?: string
+          created_by?: string | null
+          executed_at?: string | null
+          id?: string
+          payload?: Json
+          status?: string
+        }
+        Update: {
+          command?: string
+          created_at?: string
+          created_by?: string | null
+          executed_at?: string | null
+          id?: string
+          payload?: Json
+          status?: string
+        }
+        Relationships: []
+      }
+      agent_status: {
+        Row: {
+          agent_id: string
+          last_heartbeat: string
+          metadata: Json
+          status: string
+          version: string | null
+        }
+        Insert: {
+          agent_id?: string
+          last_heartbeat?: string
+          metadata?: Json
+          status: string
+          version?: string | null
+        }
+        Update: {
+          agent_id?: string
+          last_heartbeat?: string
+          metadata?: Json
+          status?: string
+          version?: string | null
+        }
+        Relationships: []
+      }
       arbs: {
         Row: {
           created_at: string
@@ -55,6 +109,80 @@ export type Database = {
           total_arb_percent?: number
         }
         Relationships: []
+      }
+      balances: {
+        Row: {
+          account_label: string
+          balance: number
+          bookmaker: string
+          last_updated: string
+          pending_returns: number
+        }
+        Insert: {
+          account_label: string
+          balance?: number
+          bookmaker: string
+          last_updated?: string
+          pending_returns?: number
+        }
+        Update: {
+          account_label?: string
+          balance?: number
+          bookmaker?: string
+          last_updated?: string
+          pending_returns?: number
+        }
+        Relationships: []
+      }
+      bet_logs: {
+        Row: {
+          account_label: string
+          arb_id: string | null
+          bet_type: string
+          bookmaker: string
+          details: Json
+          id: string
+          logged_at: string
+          odds: number | null
+          outcome: string
+          result: string | null
+          stake: number | null
+        }
+        Insert: {
+          account_label: string
+          arb_id?: string | null
+          bet_type: string
+          bookmaker: string
+          details?: Json
+          id?: string
+          logged_at?: string
+          odds?: number | null
+          outcome: string
+          result?: string | null
+          stake?: number | null
+        }
+        Update: {
+          account_label?: string
+          arb_id?: string | null
+          bet_type?: string
+          bookmaker?: string
+          details?: Json
+          id?: string
+          logged_at?: string
+          odds?: number | null
+          outcome?: string
+          result?: string | null
+          stake?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bet_logs_arb_id_fkey"
+            columns: ["arb_id"]
+            isOneToOne: false
+            referencedRelation: "arbs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       bookmaker_accounts: {
         Row: {

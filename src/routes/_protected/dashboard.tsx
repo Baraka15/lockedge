@@ -1,6 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Activity, LogOut, RefreshCw, Zap } from "lucide-react";
+import { Activity, LogOut, RefreshCw, Shield, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ArbCard } from "@/components/ArbCard";
 import { useLiveArbs } from "@/hooks/useLiveArbs";
@@ -65,6 +65,12 @@ function Dashboard() {
             <h1 className="text-lg font-semibold text-foreground">Sure Bets</h1>
           </div>
           <div className="flex items-center gap-2">
+            <Button asChild variant="outline" size="sm">
+              <Link to="/agent">
+                <Shield className="h-4 w-4" />
+                Agent
+              </Link>
+            </Button>
             <Button variant="outline" size="sm" onClick={runNow}>
               <RefreshCw className="h-4 w-4" />
               Scan now
