@@ -14,7 +14,129 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      arbs: {
+        Row: {
+          created_at: string
+          dedup_key: string
+          detected_at: string
+          event_name: string
+          expires_at: string
+          id: string
+          is_acknowledged: boolean
+          market_type: string
+          outcomes: Json
+          required_total_stake: number
+          total_arb_percent: number
+        }
+        Insert: {
+          created_at?: string
+          dedup_key: string
+          detected_at?: string
+          event_name: string
+          expires_at?: string
+          id?: string
+          is_acknowledged?: boolean
+          market_type: string
+          outcomes: Json
+          required_total_stake: number
+          total_arb_percent: number
+        }
+        Update: {
+          created_at?: string
+          dedup_key?: string
+          detected_at?: string
+          event_name?: string
+          expires_at?: string
+          id?: string
+          is_acknowledged?: boolean
+          market_type?: string
+          outcomes?: Json
+          required_total_stake?: number
+          total_arb_percent?: number
+        }
+        Relationships: []
+      }
+      bookmaker_accounts: {
+        Row: {
+          bookmaker: string
+          created_at: string
+          id: string
+          is_active: boolean
+          label: string | null
+        }
+        Insert: {
+          bookmaker: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label?: string | null
+        }
+        Update: {
+          bookmaker?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label?: string | null
+        }
+        Relationships: []
+      }
+      engine_runs: {
+        Row: {
+          arbs_detected: number
+          duration_ms: number
+          error: string | null
+          id: number
+          providers: string[]
+          ran_at: string
+        }
+        Insert: {
+          arbs_detected?: number
+          duration_ms?: number
+          error?: string | null
+          id?: number
+          providers?: string[]
+          ran_at?: string
+        }
+        Update: {
+          arbs_detected?: number
+          duration_ms?: number
+          error?: string | null
+          id?: number
+          providers?: string[]
+          ran_at?: string
+        }
+        Relationships: []
+      }
+      master_fixtures: {
+        Row: {
+          away_team: string
+          created_at: string
+          event_date: string
+          external_ids: Json
+          home_team: string
+          id: string
+          sport: string
+        }
+        Insert: {
+          away_team: string
+          created_at?: string
+          event_date: string
+          external_ids?: Json
+          home_team: string
+          id?: string
+          sport: string
+        }
+        Update: {
+          away_team?: string
+          created_at?: string
+          event_date?: string
+          external_ids?: Json
+          home_team?: string
+          id?: string
+          sport?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
