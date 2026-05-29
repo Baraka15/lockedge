@@ -16,6 +16,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiStatsRouteImport } from './routes/api/stats'
 import { Route as ApiEngineStatusRouteImport } from './routes/api/engine-status'
 import { Route as ProtectedDashboardRouteImport } from './routes/_protected/dashboard'
+import { Route as ProtectedAgentRouteImport } from './routes/_protected/agent'
 import { Route as ApiPublicPollRouteImport } from './routes/api/public/poll'
 
 const SignupRoute = SignupRouteImport.update({
@@ -52,6 +53,11 @@ const ProtectedDashboardRoute = ProtectedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => ProtectedRoute,
 } as any)
+const ProtectedAgentRoute = ProtectedAgentRouteImport.update({
+  id: '/agent',
+  path: '/agent',
+  getParentRoute: () => ProtectedRoute,
+} as any)
 const ApiPublicPollRoute = ApiPublicPollRouteImport.update({
   id: '/api/public/poll',
   path: '/api/public/poll',
@@ -62,6 +68,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
+  '/agent': typeof ProtectedAgentRoute
   '/dashboard': typeof ProtectedDashboardRoute
   '/api/engine-status': typeof ApiEngineStatusRoute
   '/api/stats': typeof ApiStatsRoute
@@ -71,6 +78,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
+  '/agent': typeof ProtectedAgentRoute
   '/dashboard': typeof ProtectedDashboardRoute
   '/api/engine-status': typeof ApiEngineStatusRoute
   '/api/stats': typeof ApiStatsRoute
@@ -82,6 +90,7 @@ export interface FileRoutesById {
   '/_protected': typeof ProtectedRouteWithChildren
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
+  '/_protected/agent': typeof ProtectedAgentRoute
   '/_protected/dashboard': typeof ProtectedDashboardRoute
   '/api/engine-status': typeof ApiEngineStatusRoute
   '/api/stats': typeof ApiStatsRoute
@@ -93,6 +102,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/signup'
+    | '/agent'
     | '/dashboard'
     | '/api/engine-status'
     | '/api/stats'
@@ -102,6 +112,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/signup'
+    | '/agent'
     | '/dashboard'
     | '/api/engine-status'
     | '/api/stats'
@@ -112,6 +123,7 @@ export interface FileRouteTypes {
     | '/_protected'
     | '/login'
     | '/signup'
+    | '/_protected/agent'
     | '/_protected/dashboard'
     | '/api/engine-status'
     | '/api/stats'
@@ -179,6 +191,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedDashboardRouteImport
       parentRoute: typeof ProtectedRoute
     }
+    '/_protected/agent': {
+      id: '/_protected/agent'
+      path: '/agent'
+      fullPath: '/agent'
+      preLoaderRoute: typeof ProtectedAgentRouteImport
+      parentRoute: typeof ProtectedRoute
+    }
     '/api/public/poll': {
       id: '/api/public/poll'
       path: '/api/public/poll'
@@ -190,10 +209,12 @@ declare module '@tanstack/react-router' {
 }
 
 interface ProtectedRouteChildren {
+  ProtectedAgentRoute: typeof ProtectedAgentRoute
   ProtectedDashboardRoute: typeof ProtectedDashboardRoute
 }
 
 const ProtectedRouteChildren: ProtectedRouteChildren = {
+  ProtectedAgentRoute: ProtectedAgentRoute,
   ProtectedDashboardRoute: ProtectedDashboardRoute,
 }
 
@@ -213,3 +234,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
