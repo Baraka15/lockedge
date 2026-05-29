@@ -46,7 +46,7 @@ export function useLiveArbs() {
         .gt("expires_at", new Date().toISOString())
         .order("detected_at", { ascending: false });
       if (cancelled) return;
-      setArbs((data ?? []).map((r) => fromRow(r as ArbRow)));
+      setArbs((data ?? []).map((r) => fromRow(r as unknown as ArbRow)));
     })();
 
     const channel = supabase
@@ -55,7 +55,7 @@ export function useLiveArbs() {
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "arbs" },
         (payload) => {
-          const row = payload.new as ArbRow;
+          const row = payload.new as unknown as ArbRow;
           if (row.is_acknowledged) return;
           if (new Date(row.expires_at).getTime() <= Date.now()) return;
           setArbs((prev) =>
@@ -67,7 +67,7 @@ export function useLiveArbs() {
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "arbs" },
         (payload) => {
-          const row = payload.new as ArbRow;
+          const row = payload.new as unknown as ArbRow;
           setArbs((prev) =>
             row.is_acknowledged
               ? prev.filter((a) => a.id !== row.id)

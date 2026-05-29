@@ -33,8 +33,10 @@ export const Route = createFileRoute("/api/stats")({
           }
         }
         const outcomeCount =
-          data?.reduce((s, r) => s + ((r.outcomes as ArbOutcomeRow[]) ?? []).length, 0) ??
-          0;
+          data?.reduce(
+            (s, r) => s + ((r.outcomes as unknown as ArbOutcomeRow[]) ?? []).length,
+            0,
+          ) ?? 0;
 
         return Response.json({
           ok: true,
