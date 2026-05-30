@@ -32,11 +32,16 @@ export async function runPollCycle(): Promise<PollResult> {
     const expirySeconds = Number(process.env.ARB_EXPIRY_SECONDS ?? 10);
 
     const tasks: Promise<RawOdds[]>[] = [Promise.resolve(generateMockOdds())];
-    if (process.env.THEODDSAPI_KEY) {
+    if (process.env.THEODDSAPI_KEY || process.env.ODDS_API_KEY) {
       providers.push("theoddsapi");
       tasks.push(fetchTheOddsApi());
     }
-    const raw = (await Promise.all(tasks)).flat();
+    const results = await Promise.all(tasks);
+    const raw = results.flat();
+    const realCount = results.slice(1).reduce((n, r) => n + r.length, 0);
+    if (providers.includes("theoddsapi")) {
+      console.log(`[engine] theoddsapi contributed ${realCount} raw odds rows`);
+    }
 
     const normalized = raw.map(normalizeOdds);
 
