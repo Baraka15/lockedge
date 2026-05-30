@@ -84,9 +84,19 @@ async function fetchSport(
 }
 
 export async function fetchTheOddsApi(): Promise<RawOdds[]> {
-  const apiKey = process.env.THEODDSAPI_KEY;
+  const apiKey = process.env.THEODDSAPI_KEY ?? process.env.ODDS_API_KEY;
   if (!apiKey) return [];
-  const timeoutMs = Number(process.env.HEARTBEAT_TIMEOUT_MS ?? 1500);
+  const timeoutMs = process.env.HEARTBEAT_TIMEOUT_MS
+    ? Number(process.env.HEARTBEAT_TIMEOUT_MS)
+    : 8000;
   const results = await Promise.all(SPORTS.map((s) => fetchSport(s, apiKey, timeoutMs)));
-  return results.flat();
+  const flat = results.flat();
+  if (flat.length) {
+    console.log(
+      `[theoddsapi] fetched ${flat.length} odds rows across ${SPORTS.length} sports`,
+    );
+  } else {
+    console.warn("[theoddsapi] returned 0 rows (check key, quota, or sport in-season)");
+  }
+  return flat;
 }
