@@ -1,7 +1,53 @@
 import { z } from "zod";
 import type { RawOdds } from "../types";
 
-const SPORTS = ["soccer_epl", "basketball_nba"] as const;
+// Fallback list used only if /sports discovery fails. Covers a broad range
+// so something is usually in season.
+const FALLBACK_SPORTS = [
+  "soccer_epl",
+  "soccer_uefa_champs_league",
+  "soccer_uefa_european_championship",
+  "soccer_fifa_world_cup",
+  "soccer_usa_mls",
+  "basketball_nba",
+  "basketball_euroleague",
+  "baseball_mlb",
+  "icehockey_nhl",
+  "americanfootball_nfl",
+  "tennis_atp_french_open",
+  "tennis_wta_french_open",
+] as const;
+
+const sportsListSchema = z.array(
+  z.object({ key: z.string(), active: z.boolean(), has_outrights: z.boolean().optional() }),
+);
+
+async function discoverActiveSports(apiKey: string, timeoutMs: number): Promise<string[]> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const res = await fetch(
+      `https://api.the-odds-api.com/v4/sports/?apiKey=${apiKey}`,
+      { signal: ctrl.signal },
+    );
+    if (!res.ok) {
+      console.error(`[theoddsapi] sports discovery failed: ${res.status}`);
+      return [...FALLBACK_SPORTS];
+    }
+    const parsed = sportsListSchema.safeParse(await res.json());
+    if (!parsed.success) return [...FALLBACK_SPORTS];
+    const active = parsed.data
+      .filter((s) => s.active && !s.has_outrights)
+      .map((s) => s.key);
+    console.log(`[theoddsapi] discovered ${active.length} active sports`);
+    return active.length ? active : [...FALLBACK_SPORTS];
+  } catch (err) {
+    console.error("[theoddsapi] sports discovery error", err);
+    return [...FALLBACK_SPORTS];
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 const apiSchema = z.array(
   z.object({
@@ -89,11 +135,14 @@ export async function fetchTheOddsApi(): Promise<RawOdds[]> {
   const timeoutMs = process.env.HEARTBEAT_TIMEOUT_MS
     ? Number(process.env.HEARTBEAT_TIMEOUT_MS)
     : 8000;
-  const results = await Promise.all(SPORTS.map((s) => fetchSport(s, apiKey, timeoutMs)));
+  const sports = await discoverActiveSports(apiKey, timeoutMs);
+  // Cap concurrency at 8 to stay polite on quota
+  const capped = sports.slice(0, 12);
+  const results = await Promise.all(capped.map((s) => fetchSport(s, apiKey, timeoutMs)));
   const flat = results.flat();
   if (flat.length) {
     console.log(
-      `[theoddsapi] fetched ${flat.length} odds rows across ${SPORTS.length} sports`,
+      `[theoddsapi] fetched ${flat.length} odds rows across ${capped.length} sports`,
     );
   } else {
     console.warn("[theoddsapi] returned 0 rows (check key, quota, or sport in-season)");
