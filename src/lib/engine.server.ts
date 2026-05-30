@@ -31,15 +31,25 @@ export async function runPollCycle(): Promise<PollResult> {
     const totalInvestment = Number(process.env.TOTAL_INVESTMENT ?? 100);
     const expirySeconds = Number(process.env.ARB_EXPIRY_SECONDS ?? 10);
 
-    const tasks: Promise<RawOdds[]>[] = [Promise.resolve(generateMockOdds())];
-    if (process.env.THEODDSAPI_KEY || process.env.ODDS_API_KEY) {
-      providers.push("theoddsapi");
+    const hasRealKey = !!(process.env.THEODDSAPI_KEY || process.env.ODDS_API_KEY);
+    const includeMock = process.env.INCLUDE_MOCK_ODDS === "true" || !hasRealKey;
+    const tasks: Promise<RawOdds[]>[] = [];
+    const providerOrder: string[] = [];
+    if (includeMock) {
+      providerOrder.push("mock");
+      tasks.push(Promise.resolve(generateMockOdds()));
+    }
+    if (hasRealKey) {
+      providerOrder.push("theoddsapi");
       tasks.push(fetchTheOddsApi());
     }
+    providers.length = 0;
+    providers.push(...providerOrder);
     const results = await Promise.all(tasks);
     const raw = results.flat();
-    const realCount = results.slice(1).reduce((n, r) => n + r.length, 0);
-    if (providers.includes("theoddsapi")) {
+    if (hasRealKey) {
+      const idx = providerOrder.indexOf("theoddsapi");
+      const realCount = idx >= 0 ? results[idx].length : 0;
       console.log(`[engine] theoddsapi contributed ${realCount} raw odds rows`);
     }
 
