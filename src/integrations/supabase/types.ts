@@ -235,6 +235,39 @@ export type Database = {
         }
         Relationships: []
       }
+      live_events: {
+        Row: {
+          bookmaker_count: number
+          event_date: string
+          event_key: string
+          event_name: string
+          market_type: string
+          outcomes: Json
+          sport: string
+          updated_at: string
+        }
+        Insert: {
+          bookmaker_count?: number
+          event_date: string
+          event_key: string
+          event_name: string
+          market_type: string
+          outcomes?: Json
+          sport: string
+          updated_at?: string
+        }
+        Update: {
+          bookmaker_count?: number
+          event_date?: string
+          event_key?: string
+          event_name?: string
+          market_type?: string
+          outcomes?: Json
+          sport?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       master_fixtures: {
         Row: {
           away_team: string
