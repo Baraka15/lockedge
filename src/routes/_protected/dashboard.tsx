@@ -184,6 +184,14 @@ function LiveEventRow({ ev }: { ev: LiveEvent }) {
     hour: "2-digit",
     minute: "2-digit",
   });
+  // Implied book = sum(1/bestPrice). <1 means a guaranteed-profit arb exists.
+  const impliedSum = ev.outcomes.reduce(
+    (s, o) => (o.bestPrice > 0 ? s + 1 / o.bestPrice : s),
+    0,
+  );
+  const hasArb = impliedSum > 0 && impliedSum < 1;
+  const profitPct = hasArb ? (1 - impliedSum) * 100 : 0;
+  const marginPct = !hasArb && impliedSum > 0 ? (impliedSum - 1) * 100 : 0;
   return (
     <div className="px-4 py-3">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -196,9 +204,20 @@ function LiveEventRow({ ev }: { ev: LiveEvent }) {
             {ev.bookmaker_count === 1 ? "" : "s"}
           </div>
         </div>
-        <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
-          {ev.market_type}
-        </span>
+        <div className="flex items-center gap-1.5">
+          {hasArb ? (
+            <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
+              Sure bet +{profitPct.toFixed(2)}%
+            </span>
+          ) : (
+            <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+              Margin {marginPct.toFixed(2)}%
+            </span>
+          )}
+          <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+            {ev.market_type}
+          </span>
+        </div>
       </div>
       <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
         {ev.outcomes.map((o) => (
@@ -220,6 +239,12 @@ function LiveEventRow({ ev }: { ev: LiveEvent }) {
           </div>
         ))}
       </div>
+      {hasArb && (
+        <div className="mt-2 text-[11px] text-emerald-600 dark:text-emerald-400">
+          Implied book {(impliedSum * 100).toFixed(2)}% — guaranteed profit if all
+          legs are staked proportionally.
+        </div>
+      )}
     </div>
   );
 }
