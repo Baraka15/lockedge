@@ -21,6 +21,23 @@ interface Stats {
   totalPotentialProfit: number;
 }
 
+interface LiveEventOutcome {
+  name: string;
+  bestPrice: number;
+  bookmaker: string;
+  bookmakerCount: number;
+}
+interface LiveEvent {
+  event_key: string;
+  sport: string;
+  event_name: string;
+  event_date: string;
+  market_type: string;
+  bookmaker_count: number;
+  outcomes: LiveEventOutcome[];
+  updated_at: string;
+}
+
 function Dashboard() {
   const { arbs, acknowledgeArb } = useLiveArbs();
 
@@ -42,10 +59,21 @@ function Dashboard() {
     refetchInterval: 15000,
   });
 
+  const liveEventsQuery = useQuery<{ ok: boolean; events: LiveEvent[] }>({
+    queryKey: ["live-events"],
+    queryFn: async () => {
+      const res = await fetch("/api/live-events");
+      return res.json();
+    },
+    refetchInterval: 5000,
+  });
+  const liveEvents = liveEventsQuery.data?.events ?? [];
+
   const runNow = async () => {
     await fetch("/api/public/poll");
     statusQuery.refetch();
     statsQuery.refetch();
+    liveEventsQuery.refetch();
   };
 
   const signOut = async () => {
@@ -123,7 +151,75 @@ function Dashboard() {
             arbs.map((arb) => <ArbCard key={arb.id} arb={arb} onAcknowledge={acknowledgeArb} />)
           )}
         </section>
+
+        <section className="mt-10">
+          <div className="mb-3 flex items-baseline justify-between">
+            <h2 className="text-base font-semibold text-foreground">Live events</h2>
+            <span className="text-xs text-muted-foreground">
+              {liveEvents.length} match{liveEvents.length === 1 ? "" : "es"} scanned
+            </span>
+          </div>
+          {liveEvents.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-border bg-card/50 py-10 text-center text-sm text-muted-foreground">
+              No live events yet. Run a scan to populate the feed.
+            </div>
+          ) : (
+            <div className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
+              {liveEvents.map((ev) => (
+                <LiveEventRow key={ev.event_key} ev={ev} />
+              ))}
+            </div>
+          )}
+        </section>
       </main>
+    </div>
+  );
+}
+
+function LiveEventRow({ ev }: { ev: LiveEvent }) {
+  const when = new Date(ev.event_date);
+  const whenLabel = when.toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  return (
+    <div className="px-4 py-3">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <div>
+          <div className="text-sm font-medium capitalize text-foreground">
+            {ev.event_name}
+          </div>
+          <div className="text-xs text-muted-foreground">
+            {ev.sport.replace(/_/g, " ")} · {whenLabel} · {ev.bookmaker_count} bookmaker
+            {ev.bookmaker_count === 1 ? "" : "s"}
+          </div>
+        </div>
+        <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+          {ev.market_type}
+        </span>
+      </div>
+      <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+        {ev.outcomes.map((o) => (
+          <div
+            key={o.name}
+            className="rounded-md border border-border bg-background/40 px-2 py-1.5"
+          >
+            <div className="truncate text-xs capitalize text-muted-foreground">
+              {o.name}
+            </div>
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="text-sm font-semibold tabular-nums text-foreground">
+                {o.bestPrice.toFixed(2)}
+              </span>
+              <span className="truncate text-[10px] text-muted-foreground">
+                {o.bookmaker}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
