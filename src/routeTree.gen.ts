@@ -14,6 +14,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as ProtectedRouteImport } from './routes/_protected'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiStatsRouteImport } from './routes/api/stats'
+import { Route as ApiLiveEventsRouteImport } from './routes/api/live-events'
 import { Route as ApiEngineStatusRouteImport } from './routes/api/engine-status'
 import { Route as ProtectedDashboardRouteImport } from './routes/_protected/dashboard'
 import { Route as ProtectedAgentRouteImport } from './routes/_protected/agent'
@@ -41,6 +42,11 @@ const IndexRoute = IndexRouteImport.update({
 const ApiStatsRoute = ApiStatsRouteImport.update({
   id: '/api/stats',
   path: '/api/stats',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiLiveEventsRoute = ApiLiveEventsRouteImport.update({
+  id: '/api/live-events',
+  path: '/api/live-events',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiEngineStatusRoute = ApiEngineStatusRouteImport.update({
@@ -71,6 +77,7 @@ export interface FileRoutesByFullPath {
   '/agent': typeof ProtectedAgentRoute
   '/dashboard': typeof ProtectedDashboardRoute
   '/api/engine-status': typeof ApiEngineStatusRoute
+  '/api/live-events': typeof ApiLiveEventsRoute
   '/api/stats': typeof ApiStatsRoute
   '/api/public/poll': typeof ApiPublicPollRoute
 }
@@ -81,6 +88,7 @@ export interface FileRoutesByTo {
   '/agent': typeof ProtectedAgentRoute
   '/dashboard': typeof ProtectedDashboardRoute
   '/api/engine-status': typeof ApiEngineStatusRoute
+  '/api/live-events': typeof ApiLiveEventsRoute
   '/api/stats': typeof ApiStatsRoute
   '/api/public/poll': typeof ApiPublicPollRoute
 }
@@ -93,6 +101,7 @@ export interface FileRoutesById {
   '/_protected/agent': typeof ProtectedAgentRoute
   '/_protected/dashboard': typeof ProtectedDashboardRoute
   '/api/engine-status': typeof ApiEngineStatusRoute
+  '/api/live-events': typeof ApiLiveEventsRoute
   '/api/stats': typeof ApiStatsRoute
   '/api/public/poll': typeof ApiPublicPollRoute
 }
@@ -105,6 +114,7 @@ export interface FileRouteTypes {
     | '/agent'
     | '/dashboard'
     | '/api/engine-status'
+    | '/api/live-events'
     | '/api/stats'
     | '/api/public/poll'
   fileRoutesByTo: FileRoutesByTo
@@ -115,6 +125,7 @@ export interface FileRouteTypes {
     | '/agent'
     | '/dashboard'
     | '/api/engine-status'
+    | '/api/live-events'
     | '/api/stats'
     | '/api/public/poll'
   id:
@@ -126,6 +137,7 @@ export interface FileRouteTypes {
     | '/_protected/agent'
     | '/_protected/dashboard'
     | '/api/engine-status'
+    | '/api/live-events'
     | '/api/stats'
     | '/api/public/poll'
   fileRoutesById: FileRoutesById
@@ -136,6 +148,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   SignupRoute: typeof SignupRoute
   ApiEngineStatusRoute: typeof ApiEngineStatusRoute
+  ApiLiveEventsRoute: typeof ApiLiveEventsRoute
   ApiStatsRoute: typeof ApiStatsRoute
   ApiPublicPollRoute: typeof ApiPublicPollRoute
 }
@@ -175,6 +188,13 @@ declare module '@tanstack/react-router' {
       path: '/api/stats'
       fullPath: '/api/stats'
       preLoaderRoute: typeof ApiStatsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/live-events': {
+      id: '/api/live-events'
+      path: '/api/live-events'
+      fullPath: '/api/live-events'
+      preLoaderRoute: typeof ApiLiveEventsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/engine-status': {
@@ -228,6 +248,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   SignupRoute: SignupRoute,
   ApiEngineStatusRoute: ApiEngineStatusRoute,
+  ApiLiveEventsRoute: ApiLiveEventsRoute,
   ApiStatsRoute: ApiStatsRoute,
   ApiPublicPollRoute: ApiPublicPollRoute,
 }
