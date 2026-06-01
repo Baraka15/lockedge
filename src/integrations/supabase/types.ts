@@ -271,29 +271,35 @@ export type Database = {
       master_fixtures: {
         Row: {
           away_team: string
+          commenced_at: string | null
           created_at: string
           event_date: string
           external_ids: Json
           home_team: string
           id: string
+          is_completed: boolean
           sport: string
         }
         Insert: {
           away_team: string
+          commenced_at?: string | null
           created_at?: string
           event_date: string
           external_ids?: Json
           home_team: string
           id?: string
+          is_completed?: boolean
           sport: string
         }
         Update: {
           away_team?: string
+          commenced_at?: string | null
           created_at?: string
           event_date?: string
           external_ids?: Json
           home_team?: string
           id?: string
+          is_completed?: boolean
           sport?: string
         }
         Relationships: []

@@ -55,15 +55,31 @@ export async function runPollCycle(): Promise<PollResult> {
 
     const normalized = raw.map(normalizeOdds);
 
+    // Drop any odds whose event has already started — institutional bar.
+    const nowMs = Date.now();
+    const upcoming = normalized.filter(
+      (n) => new Date(n.eventDate).getTime() > nowMs,
+    );
+
+    // Dedupe per (bookmaker, event, market, outcome) — keep latest fetch.
+    const dedupMap = new Map<string, typeof upcoming[number]>();
+    for (const n of upcoming) {
+      const key = `${n.bookmaker}|${n.eventKey}|${n.marketType}`;
+      const prev = dedupMap.get(key);
+      if (!prev || n.fetchedAt > prev.fetchedAt) dedupMap.set(key, n);
+    }
+    const deduped = Array.from(dedupMap.values());
+
     const { data: fixturesData } = await supabaseAdmin
       .from("master_fixtures")
-      .select("id, sport, home_team, away_team, event_date");
+      .select("id, sport, home_team, away_team, event_date, is_completed")
+      .eq("is_completed", false);
     const fixtures = (fixturesData ?? []) as MasterFixture[];
 
     // Upsert any newly seen events into master_fixtures so future runs can fuzzy-match
     const fixturePayload = Array.from(
       new Map(
-        normalized.map((n) => [
+        deduped.map((n) => [
           `${n.sport}|${n.homeTeam}|${n.awayTeam}|${new Date(n.eventDate)
             .toISOString()
             .slice(0, 10)}`,
@@ -85,9 +101,26 @@ export async function runPollCycle(): Promise<PollResult> {
         });
     }
 
-    const groups = matchFixtures(normalized, fixtures);
+    // Mark stale fixtures completed (defence-in-depth alongside the pg_cron job).
+    const staleCutoff = new Date(nowMs - 3 * 60 * 60 * 1000).toISOString();
+    await supabaseAdmin
+      .from("master_fixtures")
+      .update({ is_completed: true })
+      .lt("event_date", staleCutoff)
+      .eq("is_completed", false);
+
+    const groups = matchFixtures(deduped, fixtures);
     const arbs = detectArbs(groups, totalInvestment);
     arbsDetected = arbs.length;
+
+    for (const a of arbs) {
+      console.log(
+        `[engine] ARB ${a.eventName} (${a.marketType}) arb%=${a.totalArbPercent} ` +
+          a.outcomes
+            .map((o) => `${o.name}@${o.odds}[${o.bookmaker}]`)
+            .join(" / "),
+      );
+    }
 
     // Upsert a snapshot of every scanned event so the dashboard can show
     // live odds, not just confirmed arbs. Best price per outcome across
@@ -171,6 +204,10 @@ export async function runPollCycle(): Promise<PollResult> {
         .upsert(rows, { onConflict: "dedup_key", ignoreDuplicates: true });
       if (error) console.error("[engine] arb upsert failed", error);
     }
+
+    // Note: a pg_cron job ('arbs-cleanup-stale') prunes expired arbs and
+    // anything older than 30min, so we keep recently-expired rows around
+    // long enough for the Settlement tab to surface them.
   } catch (err) {
     errorMsg = err instanceof Error ? err.message : String(err);
     console.error(`[engine] ${new Date().toISOString()} poll cycle failed`, err);

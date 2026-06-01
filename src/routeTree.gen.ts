@@ -14,6 +14,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as ProtectedRouteImport } from './routes/_protected'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiStatsRouteImport } from './routes/api/stats'
+import { Route as ApiSettlementRouteImport } from './routes/api/settlement'
 import { Route as ApiLiveEventsRouteImport } from './routes/api/live-events'
 import { Route as ApiEngineStatusRouteImport } from './routes/api/engine-status'
 import { Route as ProtectedDashboardRouteImport } from './routes/_protected/dashboard'
@@ -42,6 +43,11 @@ const IndexRoute = IndexRouteImport.update({
 const ApiStatsRoute = ApiStatsRouteImport.update({
   id: '/api/stats',
   path: '/api/stats',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSettlementRoute = ApiSettlementRouteImport.update({
+  id: '/api/settlement',
+  path: '/api/settlement',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiLiveEventsRoute = ApiLiveEventsRouteImport.update({
@@ -78,6 +84,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof ProtectedDashboardRoute
   '/api/engine-status': typeof ApiEngineStatusRoute
   '/api/live-events': typeof ApiLiveEventsRoute
+  '/api/settlement': typeof ApiSettlementRoute
   '/api/stats': typeof ApiStatsRoute
   '/api/public/poll': typeof ApiPublicPollRoute
 }
@@ -89,6 +96,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof ProtectedDashboardRoute
   '/api/engine-status': typeof ApiEngineStatusRoute
   '/api/live-events': typeof ApiLiveEventsRoute
+  '/api/settlement': typeof ApiSettlementRoute
   '/api/stats': typeof ApiStatsRoute
   '/api/public/poll': typeof ApiPublicPollRoute
 }
@@ -102,6 +110,7 @@ export interface FileRoutesById {
   '/_protected/dashboard': typeof ProtectedDashboardRoute
   '/api/engine-status': typeof ApiEngineStatusRoute
   '/api/live-events': typeof ApiLiveEventsRoute
+  '/api/settlement': typeof ApiSettlementRoute
   '/api/stats': typeof ApiStatsRoute
   '/api/public/poll': typeof ApiPublicPollRoute
 }
@@ -115,6 +124,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/api/engine-status'
     | '/api/live-events'
+    | '/api/settlement'
     | '/api/stats'
     | '/api/public/poll'
   fileRoutesByTo: FileRoutesByTo
@@ -126,6 +136,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/api/engine-status'
     | '/api/live-events'
+    | '/api/settlement'
     | '/api/stats'
     | '/api/public/poll'
   id:
@@ -138,6 +149,7 @@ export interface FileRouteTypes {
     | '/_protected/dashboard'
     | '/api/engine-status'
     | '/api/live-events'
+    | '/api/settlement'
     | '/api/stats'
     | '/api/public/poll'
   fileRoutesById: FileRoutesById
@@ -149,6 +161,7 @@ export interface RootRouteChildren {
   SignupRoute: typeof SignupRoute
   ApiEngineStatusRoute: typeof ApiEngineStatusRoute
   ApiLiveEventsRoute: typeof ApiLiveEventsRoute
+  ApiSettlementRoute: typeof ApiSettlementRoute
   ApiStatsRoute: typeof ApiStatsRoute
   ApiPublicPollRoute: typeof ApiPublicPollRoute
 }
@@ -188,6 +201,13 @@ declare module '@tanstack/react-router' {
       path: '/api/stats'
       fullPath: '/api/stats'
       preLoaderRoute: typeof ApiStatsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/settlement': {
+      id: '/api/settlement'
+      path: '/api/settlement'
+      fullPath: '/api/settlement'
+      preLoaderRoute: typeof ApiSettlementRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/live-events': {
@@ -249,6 +269,7 @@ const rootRouteChildren: RootRouteChildren = {
   SignupRoute: SignupRoute,
   ApiEngineStatusRoute: ApiEngineStatusRoute,
   ApiLiveEventsRoute: ApiLiveEventsRoute,
+  ApiSettlementRoute: ApiSettlementRoute,
   ApiStatsRoute: ApiStatsRoute,
   ApiPublicPollRoute: ApiPublicPollRoute,
 }
