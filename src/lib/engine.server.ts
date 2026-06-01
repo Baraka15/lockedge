@@ -205,11 +205,9 @@ export async function runPollCycle(): Promise<PollResult> {
       if (error) console.error("[engine] arb upsert failed", error);
     }
 
-    // Sweep stale arbs (expired) — defence in depth alongside pg_cron job.
-    await supabaseAdmin
-      .from("arbs")
-      .delete()
-      .lt("expires_at", new Date().toISOString());
+    // Note: a pg_cron job ('arbs-cleanup-stale') prunes expired arbs and
+    // anything older than 30min, so we keep recently-expired rows around
+    // long enough for the Settlement tab to surface them.
   } catch (err) {
     errorMsg = err instanceof Error ? err.message : String(err);
     console.error(`[engine] ${new Date().toISOString()} poll cycle failed`, err);
