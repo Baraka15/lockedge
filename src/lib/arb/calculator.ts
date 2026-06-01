@@ -36,7 +36,8 @@ export function calculateArb(
   // arb % = sum(1 / odds_i) * 100. <100 means risk-free profit exists.
   const inverseSum = best.reduce((acc, b) => acc + 1 / b.odds, 0);
   const arbPercent = inverseSum * 100;
-  if (!(arbPercent < 100)) return null;
+  // Reject borderline values caused by rounding noise — institutional bar.
+  if (!(arbPercent < 99.5)) return null;
 
   // Stake proportional to 1/odds so all outcomes return ~ totalInvestment / inverseSum
   const outcomes = best.map((b) => {
