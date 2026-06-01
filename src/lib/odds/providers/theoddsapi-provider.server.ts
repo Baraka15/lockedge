@@ -6,9 +6,13 @@ import type { RawOdds } from "../types";
 const FALLBACK_SPORTS = [
   "soccer_epl",
   "soccer_uefa_champs_league",
+  "soccer_spain_la_liga",
+  "soccer_germany_bundesliga",
+  "soccer_italy_serie_a",
+  "soccer_france_ligue_one",
+  "soccer_usa_mls",
   "soccer_uefa_european_championship",
   "soccer_fifa_world_cup",
-  "soccer_usa_mls",
   "basketball_nba",
   "basketball_euroleague",
   "baseball_mlb",
@@ -77,7 +81,7 @@ async function fetchSport(
   apiKey: string,
   timeoutMs: number,
 ): Promise<RawOdds[]> {
-  const url = `https://api.the-odds-api.com/v4/sports/${sport}/odds/?regions=eu,uk&markets=h2h&oddsFormat=decimal&apiKey=${apiKey}`;
+  const url = `https://api.the-odds-api.com/v4/sports/${sport}/odds/?regions=eu,uk,us,au&markets=h2h&oddsFormat=decimal&apiKey=${apiKey}`;
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
@@ -102,7 +106,10 @@ async function fetchSport(
     }
     const out: RawOdds[] = [];
     const fetchedAt = Date.now();
+    const nowMs = Date.now();
     for (const event of parsed.data) {
+      // Hard-filter past/in-play events — institutional bar.
+      if (new Date(event.commence_time).getTime() <= nowMs) continue;
       for (const bm of event.bookmakers) {
         for (const market of bm.markets) {
           if (market.key !== "h2h") continue;
