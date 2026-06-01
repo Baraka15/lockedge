@@ -10,6 +10,7 @@ export const Route = createFileRoute("/api/live-events")({
           .select(
             "event_key, sport, event_name, event_date, market_type, bookmaker_count, outcomes, updated_at",
           )
+          .gt("event_date", new Date().toISOString())
           .order("event_date", { ascending: true })
           .limit(200);
         if (error) {
