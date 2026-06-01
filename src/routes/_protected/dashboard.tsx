@@ -38,6 +38,18 @@ interface LiveEvent {
   updated_at: string;
 }
 
+interface SettlementArb {
+  id: string;
+  event_name: string;
+  market_type: string;
+  total_arb_percent: number;
+  required_total_stake: number;
+  detected_at: string;
+  expires_at: string;
+  is_acknowledged: boolean;
+  outcomes: { name: string; odds: number; bookmaker: string; stake: number }[];
+}
+
 function Dashboard() {
   const { arbs, acknowledgeArb } = useLiveArbs();
 
@@ -68,6 +80,16 @@ function Dashboard() {
     refetchInterval: 5000,
   });
   const liveEvents = liveEventsQuery.data?.events ?? [];
+
+  const settlementQuery = useQuery<{ ok: boolean; arbs: SettlementArb[] }>({
+    queryKey: ["settlement"],
+    queryFn: async () => {
+      const res = await fetch("/api/settlement");
+      return res.json();
+    },
+    refetchInterval: 15000,
+  });
+  const settlementArbs = settlementQuery.data?.arbs ?? [];
 
   const runNow = async () => {
     await fetch("/api/public/poll");
@@ -171,7 +193,74 @@ function Dashboard() {
             </div>
           )}
         </section>
+
+        <section className="mt-10">
+          <div className="mb-3 flex items-baseline justify-between">
+            <h2 className="text-base font-semibold text-foreground">Settlement</h2>
+            <span className="text-xs text-muted-foreground">
+              {settlementArbs.length} record{settlementArbs.length === 1 ? "" : "s"}
+            </span>
+          </div>
+          {settlementArbs.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-border bg-card/50 py-10 text-center text-sm text-muted-foreground">
+              No acknowledged or expired arbs yet.
+            </div>
+          ) : (
+            <div className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
+              {settlementArbs.map((a) => (
+                <SettlementRow key={a.id} a={a} />
+              ))}
+            </div>
+          )}
+        </section>
       </main>
+    </div>
+  );
+}
+
+function SettlementRow({ a }: { a: SettlementArb }) {
+  const detected = new Date(a.detected_at);
+  const status = a.is_acknowledged ? "Acknowledged" : "Expired";
+  return (
+    <div className="px-4 py-3">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <div>
+          <div className="text-sm font-medium capitalize text-foreground">
+            {a.event_name}
+          </div>
+          <div className="text-xs text-muted-foreground">
+            {detected.toLocaleString()} · {a.market_type}
+          </div>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
+            +{(100 - Number(a.total_arb_percent)).toFixed(2)}%
+          </span>
+          <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+            {status}
+          </span>
+        </div>
+      </div>
+      <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+        {a.outcomes.map((o) => (
+          <div
+            key={`${o.name}-${o.bookmaker}`}
+            className="rounded-md border border-border bg-background/40 px-2 py-1.5"
+          >
+            <div className="truncate text-xs capitalize text-muted-foreground">
+              {o.name}
+            </div>
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="text-sm font-semibold tabular-nums text-foreground">
+                {Number(o.odds).toFixed(2)}
+              </span>
+              <span className="truncate text-[10px] text-muted-foreground">
+                {o.bookmaker}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
