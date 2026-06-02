@@ -5,6 +5,8 @@ import {
   AlertTriangle,
   ArrowLeft,
   CircleDot,
+  Copy,
+  Terminal,
   Pause,
   Play,
   Power,
@@ -122,6 +124,7 @@ function AgentCommandCenter() {
       </header>
 
       <main className="mx-auto max-w-7xl space-y-6 px-6 py-6">
+        <ConnectBotCard online={derivedStatus === "online"} />
         {/* Status + control row */}
         <div className="grid gap-4 lg:grid-cols-3">
           <Card className="p-5 lg:col-span-2">
