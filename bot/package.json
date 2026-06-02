@@ -1,0 +1,20 @@
+{
+  "name": "betpawa-bot",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Local Puppeteer worker that polls the Lovable dashboard for commands and executes BetPawa bets.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "HEADLESS=false node index.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
+    "dotenv": "^16.4.5",
+    "puppeteer": "^23.0.0"
+  }
+}
