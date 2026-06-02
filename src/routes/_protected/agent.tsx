@@ -5,6 +5,8 @@ import {
   AlertTriangle,
   ArrowLeft,
   CircleDot,
+  Copy,
+  Terminal,
   Pause,
   Play,
   Power,
@@ -122,6 +124,7 @@ function AgentCommandCenter() {
       </header>
 
       <main className="mx-auto max-w-7xl space-y-6 px-6 py-6">
+        <ConnectBotCard online={derivedStatus === "online"} />
         {/* Status + control row */}
         <div className="grid gap-4 lg:grid-cols-3">
           <Card className="p-5 lg:col-span-2">
@@ -465,6 +468,65 @@ function AgentCommandCenter() {
 }
 
 function ManualCommandPanel({
+  onSend,
+  disabled,
+}: {
+  onSend: (cmd: string, payload?: Record<string, unknown>) => Promise<void>;
+  disabled: boolean;
+}) {
+  return <ManualCommandPanelInner onSend={onSend} disabled={disabled} />;
+}
+
+function ConnectBotCard({ online }: { online: boolean }) {
+  const cmd = "cd bot && cp .env.example .env && npm install && npm start";
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(cmd);
+      toast.success("Copied to clipboard");
+    } catch {
+      toast.error("Copy failed");
+    }
+  };
+  return (
+    <Card className="p-5">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="max-w-2xl space-y-2">
+          <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
+            <Terminal className="h-3.5 w-3.5" />
+            Connect your local bot
+          </div>
+          <h2 className="text-lg font-semibold">
+            {online ? "Bot connected" : "Bot not connected yet"}
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Puppeteer can't run on Lovable Cloud, so the execution bot runs on
+            your own machine. It polls this dashboard for commands, places bets
+            on BetPawa, and streams results back here in real time.
+          </p>
+          <ol className="ml-4 list-decimal space-y-1 text-sm text-muted-foreground">
+            <li>Clone this project locally (or copy the <code className="rounded bg-muted px-1 font-mono text-xs">bot/</code> folder).</li>
+            <li>Fill in <code className="rounded bg-muted px-1 font-mono text-xs">bot/.env</code> with your BetPawa credentials and Lovable Cloud service-role key.</li>
+            <li>Run the command on the right. The status indicator above will flip to <span className="text-emerald-400">online</span> once a heartbeat arrives.</li>
+          </ol>
+        </div>
+        <div className="flex w-full max-w-md flex-col gap-2 lg:w-auto">
+          <div className="flex items-center justify-between gap-2 rounded-md border border-border/60 bg-muted/40 px-3 py-2 font-mono text-xs">
+            <span className="truncate">{cmd}</span>
+            <Button size="sm" variant="ghost" onClick={copy}>
+              <Copy className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            See <code className="rounded bg-muted px-1 font-mono">bot/README.md</code>{" "}
+            for full setup, env vars, and pm2 instructions.
+          </p>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function ManualCommandPanelInner({
   onSend,
   disabled,
 }: {
