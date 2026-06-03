@@ -10,6 +10,7 @@ import {
   upsertBalance,
 } from "./supabase.js";
 import { login, placeBet, readBalance, shutdown } from "./betpawa.js";
+import { getRiskSettings, sizeStake } from "./staking.js";
 
 const COMMAND_POLL_MS = 2000;
 const HEARTBEAT_MS = 5000;
@@ -56,6 +57,13 @@ async function executeBet({ arb_id, outcome, stake, odds, event_url, outcome_sel
 async function processArb(arb) {
   log.info("Processing arb", { id: arb.id, event: arb.event_name });
   const outcomes = Array.isArray(arb.outcomes) ? arb.outcomes : [];
+  const settings = await getRiskSettings();
+  const edgePct = Number(arb.total_arb_percent) || 0;
+  if (settings.auto_stake_enabled && edgePct < (settings.min_edge_pct ?? 0)) {
+    log.info("Skipping arb below min edge", { id: arb.id, edgePct, min: settings.min_edge_pct });
+    await ackArb(arb.id);
+    return;
+  }
   for (const o of outcomes) {
     if (stopping || mode !== "online") return;
     // expect outcomes shape: { outcome, bookmaker, price, stake, event_url? }
@@ -63,11 +71,23 @@ async function processArb(arb) {
       log.info("Skipping non-betpawa leg", { bookmaker: o.bookmaker, outcome: o.outcome });
       continue;
     }
+    const legOdds = Number(o.price ?? o.odds);
+    const autoStake = sizeStake({
+      legOdds,
+      edgePct,
+      settings,
+      totalLegs: outcomes.length,
+    });
+    const stake = autoStake != null ? autoStake : Number(o.stake ?? o.recommended_stake ?? 0);
+    if (stake <= 0) {
+      log.info("Stake sized to zero — skipping leg", { outcome: o.outcome, legOdds, edgePct });
+      continue;
+    }
     await executeBet({
       arb_id: arb.id,
       outcome: o.outcome,
-      stake: o.stake ?? o.recommended_stake ?? 0,
-      odds: o.price ?? o.odds,
+      stake,
+      odds: legOdds,
       event_url: o.event_url,
       outcome_selector: o.outcome_selector,
       outcome_label: o.outcome_label ?? o.outcome,
