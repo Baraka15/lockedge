@@ -1,10 +1,22 @@
 import { createClient } from "@supabase/supabase-js";
 import "dotenv/config";
 
-const url = process.env.SUPABASE_URL;
-const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// Auto-detect Supabase credentials.
+// Priority: explicit server vars → Lovable-injected VITE_* vars → service role (optional).
+const url =
+  process.env.SUPABASE_URL ||
+  process.env.VITE_SUPABASE_URL;
+const key =
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||
+  process.env.SUPABASE_ANON_KEY ||
+  process.env.VITE_SUPABASE_ANON_KEY ||
+  process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
 if (!url || !key) {
-  throw new Error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in bot/.env");
+  throw new Error(
+    "Missing Supabase credentials. Set SUPABASE_URL + SUPABASE_ANON_KEY " +
+      "(or rely on Lovable-injected VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY).",
+  );
 }
 
 export const sb = createClient(url, key, {

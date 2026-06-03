@@ -1,5 +1,23 @@
 # BetPawa Local Bot
 
+## Quick Start
+
+Three values, then run:
+
+```bash
+export BETPAWA_EMAIL=you@example.com
+export BETPAWA_PASSWORD=your-password
+export THEODDSAPI_KEY=...            # or ODDS_API_KEY
+
+cd bot && npm install && node index.js
+```
+
+Supabase credentials are auto-detected from the Lovable Cloud
+`VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` already in your environment —
+no manual copy needed. Nothing else required.
+
+---
+
 This is the **local execution worker** for the Lovable arbitrage dashboard.
 It runs Puppeteer on your machine (Cloudflare Workers cannot run a browser),
 polls the cloud database for commands, places bets on BetPawa, and reports
