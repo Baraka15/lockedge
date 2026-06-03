@@ -304,6 +304,42 @@ export type Database = {
         }
         Relationships: []
       }
+      risk_settings: {
+        Row: {
+          account_label: string
+          auto_stake_enabled: boolean
+          bankroll: number
+          kelly_fraction: number
+          max_stake_abs: number
+          max_stake_pct: number
+          min_edge_pct: number
+          min_stake_abs: number
+          updated_at: string
+        }
+        Insert: {
+          account_label: string
+          auto_stake_enabled?: boolean
+          bankroll?: number
+          kelly_fraction?: number
+          max_stake_abs?: number
+          max_stake_pct?: number
+          min_edge_pct?: number
+          min_stake_abs?: number
+          updated_at?: string
+        }
+        Update: {
+          account_label?: string
+          auto_stake_enabled?: boolean
+          bankroll?: number
+          kelly_fraction?: number
+          max_stake_abs?: number
+          max_stake_pct?: number
+          min_edge_pct?: number
+          min_stake_abs?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
