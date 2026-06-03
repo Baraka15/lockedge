@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Activity,
   AlertTriangle,
@@ -12,8 +12,11 @@ import {
   Power,
   Send,
   Shield,
+  SlidersHorizontal,
   Wallet,
 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -125,6 +128,7 @@ function AgentCommandCenter() {
 
       <main className="mx-auto max-w-7xl space-y-6 px-6 py-6">
         <ConnectBotCard online={derivedStatus === "online"} />
+        <RiskSettingsCard />
         {/* Status + control row */}
         <div className="grid gap-4 lg:grid-cols-3">
           <Card className="p-5 lg:col-span-2">
