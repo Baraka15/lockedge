@@ -481,6 +481,125 @@ function ManualCommandPanel({
   return <ManualCommandPanelInner onSend={onSend} disabled={disabled} />;
 }
 
+type RiskSettings = {
+  account_label: string;
+  bankroll: number;
+  max_stake_pct: number;
+  max_stake_abs: number;
+  min_stake_abs: number;
+  min_edge_pct: number;
+  kelly_fraction: number;
+  auto_stake_enabled: boolean;
+};
+
+function RiskSettingsCard() {
+  const sb = supabase as unknown as { from: (t: string) => any };
+  const [s, setS] = useState<RiskSettings | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    sb.from("risk_settings")
+      .select("*")
+      .eq("account_label", "primary")
+      .maybeSingle()
+      .then(({ data }: { data: RiskSettings | null }) => {
+        setS(
+          data ?? {
+            account_label: "primary",
+            bankroll: 0,
+            max_stake_pct: 2,
+            max_stake_abs: 1000,
+            min_stake_abs: 1,
+            min_edge_pct: 1,
+            kelly_fraction: 0.25,
+            auto_stake_enabled: true,
+          },
+        );
+      });
+  }, []);
+
+  const save = async () => {
+    if (!s) return;
+    setSaving(true);
+    const { error } = await sb
+      .from("risk_settings")
+      .upsert({ ...s, updated_at: new Date().toISOString() }, { onConflict: "account_label" });
+    setSaving(false);
+    if (error) toast.error(`Save failed: ${error.message}`);
+    else toast.success("Risk settings saved");
+  };
+
+  const upd = <K extends keyof RiskSettings>(k: K, v: RiskSettings[K]) =>
+    setS((prev) => (prev ? { ...prev, [k]: v } : prev));
+  const num = (k: keyof RiskSettings) => (e: React.ChangeEvent<HTMLInputElement>) =>
+    upd(k, Number(e.target.value) as never);
+
+  if (!s) {
+    return (
+      <Card className="p-5">
+        <div className="text-sm text-muted-foreground">Loading risk settings…</div>
+      </Card>
+    );
+  }
+
+  const fields: Array<{ key: keyof RiskSettings; label: string; step?: string; hint?: string }> = [
+    { key: "bankroll", label: "Bankroll", step: "1", hint: "Total funds the bot may size against" },
+    { key: "max_stake_pct", label: "Max stake %", step: "0.1", hint: "Per-leg cap as % of bankroll" },
+    { key: "max_stake_abs", label: "Max stake (abs)", step: "1", hint: "Absolute ceiling per leg" },
+    { key: "min_stake_abs", label: "Min stake", step: "0.5", hint: "Skip legs below this size" },
+    { key: "min_edge_pct", label: "Min edge %", step: "0.1", hint: "Skip arbs below this profit %" },
+    { key: "kelly_fraction", label: "Kelly fraction", step: "0.05", hint: "0.25 = ¼-Kelly (safer)" },
+  ];
+
+  return (
+    <Card className="p-5">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
+            <SlidersHorizontal className="h-3.5 w-3.5" />
+            Risk &amp; auto-stake
+          </div>
+          <h2 className="text-lg font-semibold">Bankroll-aware stake sizing</h2>
+          <p className="max-w-xl text-sm text-muted-foreground">
+            The bot sizes each leg with fractional Kelly on the arb edge,
+            then clamps by your bankroll %, absolute cap, and min thresholds.
+          </p>
+        </div>
+        <div className="flex items-center gap-3 rounded-md border border-border/60 bg-muted/40 px-3 py-2">
+          <Switch
+            checked={s.auto_stake_enabled}
+            onCheckedChange={(v) => upd("auto_stake_enabled", v)}
+          />
+          <span className="text-sm">
+            Auto-stake {s.auto_stake_enabled ? "on" : "off"}
+          </span>
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {fields.map((f) => (
+          <div key={f.key} className="space-y-1">
+            <Label className="text-xs">{f.label}</Label>
+            <Input
+              type="number"
+              step={f.step}
+              value={s[f.key] as number}
+              onChange={num(f.key)}
+            />
+            {f.hint && <p className="text-[11px] text-muted-foreground">{f.hint}</p>}
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-4 flex justify-end">
+        <Button size="sm" onClick={save} disabled={saving}>
+          {saving ? "Saving…" : "Save risk settings"}
+        </Button>
+      </div>
+    </Card>
+  );
+}
+
 function ConnectBotCard({ online }: { online: boolean }) {
   const cmd = "cd bot && npm install && node index.js";
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL ?? "";
