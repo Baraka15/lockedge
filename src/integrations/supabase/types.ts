@@ -184,6 +184,53 @@ export type Database = {
           },
         ]
       }
+      bet_sessions: {
+        Row: {
+          arb_id: string | null
+          created_at: string
+          failed_legs: number
+          hedge_details: Json | null
+          id: string
+          notes: string | null
+          placed_legs: number
+          status: string
+          total_legs: number
+          updated_at: string
+        }
+        Insert: {
+          arb_id?: string | null
+          created_at?: string
+          failed_legs?: number
+          hedge_details?: Json | null
+          id?: string
+          notes?: string | null
+          placed_legs?: number
+          status?: string
+          total_legs?: number
+          updated_at?: string
+        }
+        Update: {
+          arb_id?: string | null
+          created_at?: string
+          failed_legs?: number
+          hedge_details?: Json | null
+          id?: string
+          notes?: string | null
+          placed_legs?: number
+          status?: string
+          total_legs?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bet_sessions_arb_id_fkey"
+            columns: ["arb_id"]
+            isOneToOne: false
+            referencedRelation: "arbs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bookmaker_accounts: {
         Row: {
           bookmaker: string
@@ -304,16 +351,59 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          body: string | null
+          channel: string
+          created_at: string
+          error: string | null
+          id: string
+          kind: string
+          payload: Json | null
+          sent_at: string | null
+          status: string
+          title: string | null
+        }
+        Insert: {
+          body?: string | null
+          channel?: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          kind: string
+          payload?: Json | null
+          sent_at?: string | null
+          status?: string
+          title?: string | null
+        }
+        Update: {
+          body?: string | null
+          channel?: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          kind?: string
+          payload?: Json | null
+          sent_at?: string | null
+          status?: string
+          title?: string | null
+        }
+        Relationships: []
+      }
       risk_settings: {
         Row: {
           account_label: string
           auto_stake_enabled: boolean
           bankroll: number
           kelly_fraction: number
+          max_odds_drift_pct: number
           max_stake_abs: number
           max_stake_pct: number
           min_edge_pct: number
           min_stake_abs: number
+          notify_enabled: boolean
+          notify_min_edge_pct: number
+          telegram_chat_id: string | null
           updated_at: string
         }
         Insert: {
@@ -321,10 +411,14 @@ export type Database = {
           auto_stake_enabled?: boolean
           bankroll?: number
           kelly_fraction?: number
+          max_odds_drift_pct?: number
           max_stake_abs?: number
           max_stake_pct?: number
           min_edge_pct?: number
           min_stake_abs?: number
+          notify_enabled?: boolean
+          notify_min_edge_pct?: number
+          telegram_chat_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -332,13 +426,70 @@ export type Database = {
           auto_stake_enabled?: boolean
           bankroll?: number
           kelly_fraction?: number
+          max_odds_drift_pct?: number
           max_stake_abs?: number
           max_stake_pct?: number
           min_edge_pct?: number
           min_stake_abs?: number
+          notify_enabled?: boolean
+          notify_min_edge_pct?: number
+          telegram_chat_id?: string | null
           updated_at?: string
         }
         Relationships: []
+      }
+      settlements: {
+        Row: {
+          arb_id: string | null
+          away_score: number | null
+          created_at: string
+          event_name: string | null
+          home_score: number | null
+          id: string
+          match_date: string | null
+          profit: number
+          settled_at: string
+          total_returned: number
+          total_staked: number
+          winning_outcome: string | null
+        }
+        Insert: {
+          arb_id?: string | null
+          away_score?: number | null
+          created_at?: string
+          event_name?: string | null
+          home_score?: number | null
+          id?: string
+          match_date?: string | null
+          profit?: number
+          settled_at?: string
+          total_returned?: number
+          total_staked?: number
+          winning_outcome?: string | null
+        }
+        Update: {
+          arb_id?: string | null
+          away_score?: number | null
+          created_at?: string
+          event_name?: string | null
+          home_score?: number | null
+          id?: string
+          match_date?: string | null
+          profit?: number
+          settled_at?: string
+          total_returned?: number
+          total_staked?: number
+          winning_outcome?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "settlements_arb_id_fkey"
+            columns: ["arb_id"]
+            isOneToOne: false
+            referencedRelation: "arbs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
