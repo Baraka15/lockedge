@@ -50,7 +50,7 @@ export async function notify({ kind, title, body, payload = {}, chatId }: Notify
       kind,
       title: title ?? kind,
       body: body ?? null,
-      payload,
+      payload: payload as never,
       status,
       error,
       sent_at: status === "sent" ? new Date().toISOString() : null,
