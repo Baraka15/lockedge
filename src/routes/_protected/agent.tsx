@@ -627,6 +627,26 @@ function RiskSettingsCard() {
           {saving ? "Saving…" : "Save risk settings"}
         </Button>
       </div>
+
+      <Separator className="my-4" />
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="space-y-1">
+          <Label className="text-xs">Telegram chat id</Label>
+          <Input
+            value={s.telegram_chat_id ?? ""}
+            placeholder="7168775421"
+            onChange={(e) => upd("telegram_chat_id", (e.target.value || null) as never)}
+          />
+          <p className="text-[11px] text-muted-foreground">Override default chat for alerts (optional).</p>
+        </div>
+        <div className="flex items-end gap-3 rounded-md border border-border/60 bg-muted/40 px-3 py-2">
+          <Switch
+            checked={s.notify_enabled}
+            onCheckedChange={(v) => upd("notify_enabled", v as never)}
+          />
+          <span className="text-sm">Telegram alerts {s.notify_enabled ? "on" : "off"}</span>
+        </div>
+      </div>
     </Card>
   );
 }
