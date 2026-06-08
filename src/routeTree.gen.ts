@@ -15,11 +15,13 @@ import { Route as ProtectedRouteImport } from './routes/_protected'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiStatsRouteImport } from './routes/api/stats'
 import { Route as ApiSettlementRouteImport } from './routes/api/settlement'
+import { Route as ApiOddsHealthRouteImport } from './routes/api/odds-health'
 import { Route as ApiLiveEventsRouteImport } from './routes/api/live-events'
 import { Route as ApiEngineStatusRouteImport } from './routes/api/engine-status'
 import { Route as ProtectedDashboardRouteImport } from './routes/_protected/dashboard'
 import { Route as ProtectedAgentRouteImport } from './routes/_protected/agent'
 import { Route as ApiPublicPollRouteImport } from './routes/api/public/poll'
+import { Route as ApiPublicHooksSettleArbRouteImport } from './routes/api/public/hooks/settle-arb'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -50,6 +52,11 @@ const ApiSettlementRoute = ApiSettlementRouteImport.update({
   path: '/api/settlement',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiOddsHealthRoute = ApiOddsHealthRouteImport.update({
+  id: '/api/odds-health',
+  path: '/api/odds-health',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiLiveEventsRoute = ApiLiveEventsRouteImport.update({
   id: '/api/live-events',
   path: '/api/live-events',
@@ -75,6 +82,11 @@ const ApiPublicPollRoute = ApiPublicPollRouteImport.update({
   path: '/api/public/poll',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHooksSettleArbRoute = ApiPublicHooksSettleArbRouteImport.update({
+  id: '/api/public/hooks/settle-arb',
+  path: '/api/public/hooks/settle-arb',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -84,9 +96,11 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof ProtectedDashboardRoute
   '/api/engine-status': typeof ApiEngineStatusRoute
   '/api/live-events': typeof ApiLiveEventsRoute
+  '/api/odds-health': typeof ApiOddsHealthRoute
   '/api/settlement': typeof ApiSettlementRoute
   '/api/stats': typeof ApiStatsRoute
   '/api/public/poll': typeof ApiPublicPollRoute
+  '/api/public/hooks/settle-arb': typeof ApiPublicHooksSettleArbRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -96,9 +110,11 @@ export interface FileRoutesByTo {
   '/dashboard': typeof ProtectedDashboardRoute
   '/api/engine-status': typeof ApiEngineStatusRoute
   '/api/live-events': typeof ApiLiveEventsRoute
+  '/api/odds-health': typeof ApiOddsHealthRoute
   '/api/settlement': typeof ApiSettlementRoute
   '/api/stats': typeof ApiStatsRoute
   '/api/public/poll': typeof ApiPublicPollRoute
+  '/api/public/hooks/settle-arb': typeof ApiPublicHooksSettleArbRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -110,9 +126,11 @@ export interface FileRoutesById {
   '/_protected/dashboard': typeof ProtectedDashboardRoute
   '/api/engine-status': typeof ApiEngineStatusRoute
   '/api/live-events': typeof ApiLiveEventsRoute
+  '/api/odds-health': typeof ApiOddsHealthRoute
   '/api/settlement': typeof ApiSettlementRoute
   '/api/stats': typeof ApiStatsRoute
   '/api/public/poll': typeof ApiPublicPollRoute
+  '/api/public/hooks/settle-arb': typeof ApiPublicHooksSettleArbRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -124,9 +142,11 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/api/engine-status'
     | '/api/live-events'
+    | '/api/odds-health'
     | '/api/settlement'
     | '/api/stats'
     | '/api/public/poll'
+    | '/api/public/hooks/settle-arb'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -136,9 +156,11 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/api/engine-status'
     | '/api/live-events'
+    | '/api/odds-health'
     | '/api/settlement'
     | '/api/stats'
     | '/api/public/poll'
+    | '/api/public/hooks/settle-arb'
   id:
     | '__root__'
     | '/'
@@ -149,9 +171,11 @@ export interface FileRouteTypes {
     | '/_protected/dashboard'
     | '/api/engine-status'
     | '/api/live-events'
+    | '/api/odds-health'
     | '/api/settlement'
     | '/api/stats'
     | '/api/public/poll'
+    | '/api/public/hooks/settle-arb'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -161,9 +185,11 @@ export interface RootRouteChildren {
   SignupRoute: typeof SignupRoute
   ApiEngineStatusRoute: typeof ApiEngineStatusRoute
   ApiLiveEventsRoute: typeof ApiLiveEventsRoute
+  ApiOddsHealthRoute: typeof ApiOddsHealthRoute
   ApiSettlementRoute: typeof ApiSettlementRoute
   ApiStatsRoute: typeof ApiStatsRoute
   ApiPublicPollRoute: typeof ApiPublicPollRoute
+  ApiPublicHooksSettleArbRoute: typeof ApiPublicHooksSettleArbRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -210,6 +236,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSettlementRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/odds-health': {
+      id: '/api/odds-health'
+      path: '/api/odds-health'
+      fullPath: '/api/odds-health'
+      preLoaderRoute: typeof ApiOddsHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/live-events': {
       id: '/api/live-events'
       path: '/api/live-events'
@@ -245,6 +278,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPollRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/settle-arb': {
+      id: '/api/public/hooks/settle-arb'
+      path: '/api/public/hooks/settle-arb'
+      fullPath: '/api/public/hooks/settle-arb'
+      preLoaderRoute: typeof ApiPublicHooksSettleArbRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -269,20 +309,12 @@ const rootRouteChildren: RootRouteChildren = {
   SignupRoute: SignupRoute,
   ApiEngineStatusRoute: ApiEngineStatusRoute,
   ApiLiveEventsRoute: ApiLiveEventsRoute,
+  ApiOddsHealthRoute: ApiOddsHealthRoute,
   ApiSettlementRoute: ApiSettlementRoute,
   ApiStatsRoute: ApiStatsRoute,
   ApiPublicPollRoute: ApiPublicPollRoute,
+  ApiPublicHooksSettleArbRoute: ApiPublicHooksSettleArbRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

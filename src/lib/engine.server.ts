@@ -4,6 +4,7 @@ import { matchFixtures } from "./odds/matcher";
 import { normalizeOdds } from "./odds/normalizer";
 import { generateMockOdds } from "./odds/providers/mock-provider.server";
 import { fetchTheOddsApi } from "./odds/providers/theoddsapi-provider.server";
+import { notify } from "./notifications.server";
 import type { MasterFixture, RawOdds } from "./odds/types";
 
 export interface PollResult {
@@ -203,6 +204,29 @@ export async function runPollCycle(): Promise<PollResult> {
         .from("arbs")
         .upsert(rows, { onConflict: "dedup_key", ignoreDuplicates: true });
       if (error) console.error("[engine] arb upsert failed", error);
+
+      // Notify on big arbs (threshold from risk_settings)
+      try {
+        const { data: rs } = await supabaseAdmin
+          .from("risk_settings").select("notify_enabled, notify_min_edge_pct")
+          .eq("account_label", "primary").maybeSingle();
+        const enabled = (rs as { notify_enabled?: boolean } | null)?.notify_enabled ?? true;
+        const minEdge = Number((rs as { notify_min_edge_pct?: number } | null)?.notify_min_edge_pct ?? 2);
+        if (enabled) {
+          for (const a of arbs) {
+            if (a.totalArbPercent >= minEdge) {
+              await notify({
+                kind: "arb_detected",
+                title: `Arb ${a.totalArbPercent.toFixed(2)}%`,
+                body: `${a.eventName} • ${a.marketType}`,
+                payload: { dedupKey: a.dedupKey },
+              });
+            }
+          }
+        }
+      } catch (e) {
+        console.error("[engine] notify failed", e);
+      }
     }
 
     // Note: a pg_cron job ('arbs-cleanup-stale') prunes expired arbs and

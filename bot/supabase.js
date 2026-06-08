@@ -110,3 +110,59 @@ export async function fetchOpenArbs() {
 export async function ackArb(id) {
   await sb.from("arbs").update({ is_acknowledged: true }).eq("id", id);
 }
+
+// ---------- bet sessions ----------
+export async function createBetSession({ arb_id, total_legs, notes }) {
+  const { data, error } = await sb
+    .from("bet_sessions")
+    .insert({ arb_id, total_legs, placed_legs: 0, failed_legs: 0, status: "pending", notes: notes ?? null })
+    .select()
+    .single();
+  if (error) { console.error("[createBetSession]", error.message); return null; }
+  return data;
+}
+
+export async function updateBetSession(id, patch) {
+  const { error } = await sb.from("bet_sessions").update(patch).eq("id", id);
+  if (error) console.error("[updateBetSession]", error.message);
+}
+
+// ---------- settlement helpers ----------
+export async function fetchBetLogsForArb(arb_id) {
+  const { data, error } = await sb.from("bet_logs").select("*").eq("arb_id", arb_id);
+  if (error) { console.error("[fetchBetLogsForArb]", error.message); return []; }
+  return data ?? [];
+}
+
+export async function recordSettlement(row) {
+  const { error } = await sb.from("settlements").insert(row);
+  if (error) console.error("[recordSettlement]", error.message);
+}
+
+// ---------- session cookie persistence (resume after crash) ----------
+export async function saveSessionCookies(bookmaker, cookies) {
+  const { data: existing } = await sb
+    .from("agent_status").select("metadata").eq("agent_id", AGENT_ID).maybeSingle();
+  const meta = (existing?.metadata ?? {});
+  const sessions = { ...(meta.sessions ?? {}), [bookmaker]: { cookies, saved_at: new Date().toISOString() } };
+  await sb.from("agent_status").upsert({
+    agent_id: AGENT_ID,
+    status: meta.status ?? "online",
+    last_heartbeat: new Date().toISOString(),
+    metadata: { ...meta, sessions },
+  }, { onConflict: "agent_id" });
+}
+
+export async function loadSessionCookies(bookmaker) {
+  const { data } = await sb
+    .from("agent_status").select("metadata").eq("agent_id", AGENT_ID).maybeSingle();
+  return data?.metadata?.sessions?.[bookmaker]?.cookies ?? null;
+}
+
+// ---------- risk settings ----------
+export async function fetchRiskSettings() {
+  const { data, error } = await sb
+    .from("risk_settings").select("*").eq("account_label", ACCOUNT_LABEL).maybeSingle();
+  if (error) { console.error("[fetchRiskSettings]", error.message); return null; }
+  return data;
+}

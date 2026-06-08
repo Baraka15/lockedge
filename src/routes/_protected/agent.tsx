@@ -13,8 +13,20 @@ import {
   Send,
   Shield,
   SlidersHorizontal,
+  TrendingUp,
   Wallet,
+  Wifi,
+  WifiOff,
 } from "lucide-react";
+import {
+  CartesianGrid,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip as ChartTooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
@@ -55,6 +67,7 @@ import {
   useBalances,
   useBetLogs,
 } from "@/hooks/useAgent";
+import { useOddsApiHealth, useSettlements } from "@/hooks/usePerformance";
 
 export const Route = createFileRoute("/_protected/agent")({
   head: () => ({ meta: [{ title: "Agent Command Center" }] }),
@@ -117,12 +130,15 @@ function AgentCommandCenter() {
               </p>
             </div>
           </div>
-          <Button asChild variant="ghost" size="sm">
-            <Link to="/dashboard">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Dashboard
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <OddsApiBadge />
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/dashboard">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Dashboard
+              </Link>
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -275,6 +291,7 @@ function AgentCommandCenter() {
         <Tabs defaultValue="actions" className="space-y-4">
           <TabsList>
             <TabsTrigger value="actions">Quick actions</TabsTrigger>
+            <TabsTrigger value="performance">Performance</TabsTrigger>
             <TabsTrigger value="logs">Bet logs</TabsTrigger>
             <TabsTrigger value="balances">Balances</TabsTrigger>
             <TabsTrigger value="commands">Command history</TabsTrigger>
@@ -285,6 +302,10 @@ function AgentCommandCenter() {
               onSend={dispatch}
               disabled={!isControllable || sending !== null}
             />
+          </TabsContent>
+
+          <TabsContent value="performance">
+            <PerformancePanel />
           </TabsContent>
 
           <TabsContent value="logs">
@@ -490,6 +511,10 @@ type RiskSettings = {
   min_edge_pct: number;
   kelly_fraction: number;
   auto_stake_enabled: boolean;
+  max_odds_drift_pct: number;
+  notify_min_edge_pct: number;
+  notify_enabled: boolean;
+  telegram_chat_id: string | null;
 };
 
 function RiskSettingsCard() {
@@ -513,6 +538,10 @@ function RiskSettingsCard() {
             min_edge_pct: 1,
             kelly_fraction: 0.25,
             auto_stake_enabled: true,
+            max_odds_drift_pct: 0.5,
+            notify_min_edge_pct: 2,
+            notify_enabled: true,
+            telegram_chat_id: null,
           },
         );
       });
@@ -549,6 +578,8 @@ function RiskSettingsCard() {
     { key: "min_stake_abs", label: "Min stake", step: "0.5", hint: "Skip legs below this size" },
     { key: "min_edge_pct", label: "Min edge %", step: "0.1", hint: "Skip arbs below this profit %" },
     { key: "kelly_fraction", label: "Kelly fraction", step: "0.05", hint: "0.25 = ¼-Kelly (safer)" },
+    { key: "max_odds_drift_pct", label: "Max odds drift %", step: "0.1", hint: "Abort leg if live odds drift more than this" },
+    { key: "notify_min_edge_pct", label: "Notify above edge %", step: "0.1", hint: "Telegram alert when arb edge ≥ this" },
   ];
 
   return (
@@ -595,6 +626,26 @@ function RiskSettingsCard() {
         <Button size="sm" onClick={save} disabled={saving}>
           {saving ? "Saving…" : "Save risk settings"}
         </Button>
+      </div>
+
+      <Separator className="my-4" />
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="space-y-1">
+          <Label className="text-xs">Telegram chat id</Label>
+          <Input
+            value={s.telegram_chat_id ?? ""}
+            placeholder="7168775421"
+            onChange={(e) => upd("telegram_chat_id", (e.target.value || null) as never)}
+          />
+          <p className="text-[11px] text-muted-foreground">Override default chat for alerts (optional).</p>
+        </div>
+        <div className="flex items-end gap-3 rounded-md border border-border/60 bg-muted/40 px-3 py-2">
+          <Switch
+            checked={s.notify_enabled}
+            onCheckedChange={(v) => upd("notify_enabled", v as never)}
+          />
+          <span className="text-sm">Telegram alerts {s.notify_enabled ? "on" : "off"}</span>
+        </div>
       </div>
     </Card>
   );
@@ -834,6 +885,133 @@ function ManualCommandPanelInner({
             Send command
           </Button>
         </div>
+      </Card>
+    </div>
+  );
+}
+
+function OddsApiBadge() {
+  const h = useOddsApiHealth();
+  const map: Record<string, { label: string; cls: string; Icon: typeof Wifi }> = {
+    live: { label: "Odds API: Live", cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30", Icon: Wifi },
+    error: { label: "Odds API: Error", cls: "bg-rose-500/15 text-rose-400 border-rose-500/30", Icon: WifiOff },
+    missing_key: { label: "Odds API: No key", cls: "bg-amber-500/15 text-amber-400 border-amber-500/30", Icon: AlertTriangle },
+    unknown: { label: "Odds API…", cls: "bg-zinc-500/15 text-zinc-400 border-zinc-500/30", Icon: Wifi },
+  };
+  const cfg = map[h.status] ?? map.unknown;
+  return (
+    <Badge variant="outline" className={`gap-1.5 ${cfg.cls}`} title={h.detail ?? ""}>
+      <cfg.Icon className="h-3 w-3" />
+      <span className="text-xs">{cfg.label}</span>
+      {h.remaining != null && <span className="font-mono text-[10px] opacity-70">· {h.remaining} left</span>}
+    </Badge>
+  );
+}
+
+function PerformancePanel() {
+  const { items, curve, totals, winRate, roi, activeToday, best, worst } = useSettlements();
+  const stat = (label: string, value: string, sub?: string) => (
+    <Card className="p-4">
+      <div className="text-xs uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className="mt-1 text-2xl font-semibold">{value}</div>
+      {sub && <div className="text-[11px] text-muted-foreground">{sub}</div>}
+    </Card>
+  );
+  const fmt = (n: number) => n.toLocaleString(undefined, { maximumFractionDigits: 2 });
+
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        {stat("Total profit", fmt(totals.profit), `${items.length} settlements`)}
+        {stat("ROI", `${(roi * 100).toFixed(2)}%`, `Staked ${fmt(totals.staked)}`)}
+        {stat("Win rate", `${(winRate * 100).toFixed(1)}%`, `${totals.wins}/${totals.count}`)}
+        {stat("Returned", fmt(totals.returned))}
+        {stat("Active today", `${activeToday}`)}
+      </div>
+
+      <Card className="p-5">
+        <div className="mb-2 flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
+          <TrendingUp className="h-3.5 w-3.5" /> Cumulative profit
+        </div>
+        <div className="h-64">
+          {curve.length === 0 ? (
+            <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+              No settlements yet. Settle an arb via POST /api/public/hooks/settle-arb.
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={curve}>
+                <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
+                <XAxis dataKey="at" tickFormatter={(v) => new Date(v).toLocaleDateString()} fontSize={11} />
+                <YAxis fontSize={11} />
+                <ChartTooltip
+                  labelFormatter={(v) => new Date(v as string).toLocaleString()}
+                  formatter={(v: number) => fmt(v)}
+                />
+                <Line type="monotone" dataKey="profit" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
+              </LineChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+      </Card>
+
+      <div className="grid gap-3 lg:grid-cols-2">
+        <Card className="p-4">
+          <div className="text-xs uppercase tracking-wide text-muted-foreground">Best arb</div>
+          {best ? (
+            <div className="mt-1 space-y-0.5 text-sm">
+              <div className="font-medium">{best.event_name ?? best.arb_id}</div>
+              <div className="text-emerald-400">+{fmt(best.profit)}</div>
+              <div className="text-xs text-muted-foreground">Staked {fmt(best.total_staked)} · {best.winning_outcome}</div>
+            </div>
+          ) : <div className="text-sm text-muted-foreground">—</div>}
+        </Card>
+        <Card className="p-4">
+          <div className="text-xs uppercase tracking-wide text-muted-foreground">Worst arb</div>
+          {worst ? (
+            <div className="mt-1 space-y-0.5 text-sm">
+              <div className="font-medium">{worst.event_name ?? worst.arb_id}</div>
+              <div className={worst.profit < 0 ? "text-rose-400" : "text-emerald-400"}>{fmt(worst.profit)}</div>
+              <div className="text-xs text-muted-foreground">Staked {fmt(worst.total_staked)} · {worst.winning_outcome}</div>
+            </div>
+          ) : <div className="text-sm text-muted-foreground">—</div>}
+        </Card>
+      </div>
+
+      <Card className="overflow-hidden">
+        <div className="border-b border-border/60 px-5 py-3 text-sm font-medium">Recent settlements</div>
+        {items.length === 0 ? (
+          <div className="p-8 text-center text-sm text-muted-foreground">No settlements yet.</div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>When</TableHead>
+                <TableHead>Event</TableHead>
+                <TableHead>Outcome</TableHead>
+                <TableHead className="text-right">Staked</TableHead>
+                <TableHead className="text-right">Returned</TableHead>
+                <TableHead className="text-right">Profit</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {items.slice(0, 50).map((s) => (
+                <TableRow key={s.id}>
+                  <TableCell className="font-mono text-xs text-muted-foreground">
+                    {new Date(s.settled_at).toLocaleString()}
+                  </TableCell>
+                  <TableCell>{s.event_name ?? s.arb_id}</TableCell>
+                  <TableCell className="text-muted-foreground">{s.winning_outcome ?? "—"}</TableCell>
+                  <TableCell className="text-right font-mono">{fmt(Number(s.total_staked))}</TableCell>
+                  <TableCell className="text-right font-mono">{fmt(Number(s.total_returned))}</TableCell>
+                  <TableCell className={`text-right font-mono ${Number(s.profit) >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                    {fmt(Number(s.profit))}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
       </Card>
     </div>
   );
