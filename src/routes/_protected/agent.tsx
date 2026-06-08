@@ -13,8 +13,20 @@ import {
   Send,
   Shield,
   SlidersHorizontal,
+  TrendingUp,
   Wallet,
+  Wifi,
+  WifiOff,
 } from "lucide-react";
+import {
+  CartesianGrid,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip as ChartTooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
@@ -55,6 +67,7 @@ import {
   useBalances,
   useBetLogs,
 } from "@/hooks/useAgent";
+import { useOddsApiHealth, useSettlements } from "@/hooks/usePerformance";
 
 export const Route = createFileRoute("/_protected/agent")({
   head: () => ({ meta: [{ title: "Agent Command Center" }] }),
