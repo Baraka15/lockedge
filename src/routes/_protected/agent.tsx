@@ -130,12 +130,15 @@ function AgentCommandCenter() {
               </p>
             </div>
           </div>
-          <Button asChild variant="ghost" size="sm">
-            <Link to="/dashboard">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Dashboard
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <OddsApiBadge />
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/dashboard">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Dashboard
+              </Link>
+            </Button>
+          </div>
         </div>
       </header>
 
