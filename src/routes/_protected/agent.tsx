@@ -291,6 +291,7 @@ function AgentCommandCenter() {
         <Tabs defaultValue="actions" className="space-y-4">
           <TabsList>
             <TabsTrigger value="actions">Quick actions</TabsTrigger>
+            <TabsTrigger value="performance">Performance</TabsTrigger>
             <TabsTrigger value="logs">Bet logs</TabsTrigger>
             <TabsTrigger value="balances">Balances</TabsTrigger>
             <TabsTrigger value="commands">Command history</TabsTrigger>
@@ -301,6 +302,10 @@ function AgentCommandCenter() {
               onSend={dispatch}
               disabled={!isControllable || sending !== null}
             />
+          </TabsContent>
+
+          <TabsContent value="performance">
+            <PerformancePanel />
           </TabsContent>
 
           <TabsContent value="logs">
