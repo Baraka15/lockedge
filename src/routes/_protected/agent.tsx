@@ -511,6 +511,10 @@ type RiskSettings = {
   min_edge_pct: number;
   kelly_fraction: number;
   auto_stake_enabled: boolean;
+  max_odds_drift_pct: number;
+  notify_min_edge_pct: number;
+  notify_enabled: boolean;
+  telegram_chat_id: string | null;
 };
 
 function RiskSettingsCard() {
@@ -534,6 +538,10 @@ function RiskSettingsCard() {
             min_edge_pct: 1,
             kelly_fraction: 0.25,
             auto_stake_enabled: true,
+            max_odds_drift_pct: 0.5,
+            notify_min_edge_pct: 2,
+            notify_enabled: true,
+            telegram_chat_id: null,
           },
         );
       });
@@ -570,6 +578,8 @@ function RiskSettingsCard() {
     { key: "min_stake_abs", label: "Min stake", step: "0.5", hint: "Skip legs below this size" },
     { key: "min_edge_pct", label: "Min edge %", step: "0.1", hint: "Skip arbs below this profit %" },
     { key: "kelly_fraction", label: "Kelly fraction", step: "0.05", hint: "0.25 = ¼-Kelly (safer)" },
+    { key: "max_odds_drift_pct", label: "Max odds drift %", step: "0.1", hint: "Abort leg if live odds drift more than this" },
+    { key: "notify_min_edge_pct", label: "Notify above edge %", step: "0.1", hint: "Telegram alert when arb edge ≥ this" },
   ];
 
   return (
