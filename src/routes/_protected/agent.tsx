@@ -68,6 +68,10 @@ import {
   useBetLogs,
 } from "@/hooks/useAgent";
 import { useOddsApiHealth, useSettlements } from "@/hooks/usePerformance";
+import { SettleArbDialog } from "@/components/SettleArbDialog";
+import { SetupWizard } from "@/components/SetupWizard";
+import { BotHealthPanel } from "@/components/BotHealthPanel";
+import { PerformanceAnalytics } from "@/components/PerformanceAnalytics";
 
 export const Route = createFileRoute("/_protected/agent")({
   head: () => ({ meta: [{ title: "Agent Command Center" }] }),
@@ -117,6 +121,7 @@ function AgentCommandCenter() {
 
   return (
     <div className="min-h-screen bg-background">
+      <SetupWizard />
       <header className="border-b border-border/60 bg-card/40 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
@@ -292,6 +297,8 @@ function AgentCommandCenter() {
           <TabsList>
             <TabsTrigger value="actions">Quick actions</TabsTrigger>
             <TabsTrigger value="performance">Performance</TabsTrigger>
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
+            <TabsTrigger value="health">Bot health</TabsTrigger>
             <TabsTrigger value="logs">Bet logs</TabsTrigger>
             <TabsTrigger value="balances">Balances</TabsTrigger>
             <TabsTrigger value="commands">Command history</TabsTrigger>
@@ -306,6 +313,14 @@ function AgentCommandCenter() {
 
           <TabsContent value="performance">
             <PerformancePanel />
+          </TabsContent>
+
+          <TabsContent value="analytics">
+            <PerformanceAnalytics />
+          </TabsContent>
+
+          <TabsContent value="health">
+            <BotHealthPanel />
           </TabsContent>
 
           <TabsContent value="logs">
