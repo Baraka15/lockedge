@@ -15,6 +15,7 @@ import {
 import { getBookmakers, isAvailable, shutdownAll } from "./bookmakers/index.js";
 import { sizeStake } from "./staking.js";
 import { notify } from "./notifications.js";
+import { startBalanceSync } from "./balance-sync.js";
 
 const COMMAND_POLL_MS = 2000;
 const HEARTBEAT_MS = 5000;
@@ -49,6 +50,9 @@ async function bumpFailureAndMaybePause(reason) {
 
 async function placeLeg(session, bm, leg) {
   const { arb_id, outcome, stake, odds, event_url, outcome_selector, outcome_label, settings } = leg;
+  // mark verifying
+  await logBet({ arb_id, outcome, bet_type: "back", odds, stake, result: "pending",
+    details: { phase: "verifying", bookmaker: bm.id, session_id: session?.id } });
   // 1) Odds drift verification
   const driftPct = Number(settings?.max_odds_drift_pct ?? 0.5);
   if (driftPct > 0 && event_url) {
@@ -69,13 +73,15 @@ async function placeLeg(session, bm, leg) {
     }
   }
 
-  // 2) Place with one retry
+  // 2) Place with one retry — per-state logs
   let lastErr = null;
   for (let attempt = 1; attempt <= 2; attempt++) {
     try {
       const res = await bm.placeBet({ arb_id, outcome, stake, odds, event_url, outcome_selector, outcome_label });
       await logBet({ arb_id, outcome, bet_type: "back", odds: res.odds ?? odds, stake,
-        result: res.result, details: { attempt, bookmaker: bm.id, session_id: session?.id } });
+        result: res.result, details: { attempt, bookmaker: bm.id, session_id: session?.id,
+          phase: res.result === "success" ? "confirmed" : "placed",
+          betId: res.betId ?? null, receiptUrl: res.receiptUrl ?? null } });
       if (typeof res.balance === "number") await upsertBalance(res.balance);
       return res;
     } catch (e) {
@@ -84,8 +90,9 @@ async function placeLeg(session, bm, leg) {
     }
   }
   await logBet({ arb_id, outcome, bet_type: "back", odds, stake, result: "failed",
-    details: { error: lastErr?.message ?? "unknown", bookmaker: bm.id, session_id: session?.id } });
-  return { result: "failed" };
+    details: { error: lastErr?.message ?? "unknown", bookmaker: bm.id, session_id: session?.id,
+      screenshot_b64: lastErr?.screenshot?.b64 ?? null } });
+  return { result: "failed", error: lastErr?.message };
 }
 
 async function placeHedge(session, placedLegs, settings) {
@@ -165,33 +172,48 @@ async function processArb(arb) {
   // Create session
   const session = await createBetSession({ arb_id: arb.id, total_legs: legs.length });
 
-  // Execute legs sequentially. On the first failure → hedge what we already placed.
-  const placed = [];
-  let failed = false;
-  for (let i = 0; i < legs.length; i++) {
-    if (stopping || mode !== "online") { failed = true; break; }
-    const { bm } = legs[i];
+  // Execute legs in PARALLEL across bookmakers (with a 30s overall window).
+  // Once any leg has placed successfully, a later failure triggers a rescue
+  // hedge of the placed legs.
+  const WINDOW_MS = 30_000;
+  const tasks = legs.map(({ bm }, i) => {
     const { leg, stake, legOdds } = stakes[i];
-    const res = await placeLeg(session, bm, {
+    return placeLeg(session, bm, {
       arb_id: arb.id, outcome: leg.outcome, stake, odds: legOdds,
       event_url: leg.event_url, outcome_selector: leg.outcome_selector,
       outcome_label: leg.outcome_label ?? leg.outcome, settings,
-    });
-    if (res.result === "success" || res.result === "partial") {
-      placed.push({ ...leg, arb_id: arb.id, stake, odds: legOdds, bookmaker: bm.id,
-        hedge_label: leg.hedge_label, hedge_selector: leg.hedge_selector });
-      if (session) await updateBetSession(session.id, { placed_legs: placed.length });
+    }).then((res) => ({ i, res, leg, stake, legOdds, bm }))
+      .catch((err) => ({ i, res: { result: "failed", error: err.message }, leg, stake, legOdds, bm }));
+  });
+  const timeoutP = new Promise((resolve) => setTimeout(() => resolve("__timeout__"), WINDOW_MS));
+  let settled;
+  try {
+    settled = await Promise.race([Promise.allSettled(tasks), timeoutP]);
+  } catch { settled = "__timeout__"; }
+  if (settled === "__timeout__") {
+    log.warn("Arb placement exceeded 30s window", { arb_id: arb.id });
+    settled = await Promise.allSettled(tasks); // still gather what completed
+  }
+
+  const placed = [];
+  let failedCount = 0;
+  for (const r of settled) {
+    const v = r.status === "fulfilled" ? r.value : null;
+    if (!v) { failedCount++; continue; }
+    if (v.res.result === "success" || v.res.result === "partial") {
+      placed.push({ ...v.leg, arb_id: arb.id, stake: v.stake, odds: v.legOdds, bookmaker: v.bm.id,
+        hedge_label: v.leg.hedge_label, hedge_selector: v.leg.hedge_selector });
       consecutiveFailures = 0;
-      await notify({ kind: "bet_placed", title: `Leg placed: ${leg.outcome}`,
-        body: `${leg.outcome} @ ${legOdds} stake ${stake} on ${bm.id}`,
+      await notify({ kind: "bet_placed", title: `Leg placed: ${v.leg.outcome}`,
+        body: `${v.leg.outcome} @ ${v.legOdds} stake ${v.stake} on ${v.bm.id}`,
         payload: { arb_id: arb.id, session_id: session?.id } });
     } else {
-      failed = true;
-      if (session) await updateBetSession(session.id, { failed_legs: 1 });
-      await bumpFailureAndMaybePause(`leg ${leg.outcome} ${res.result}`);
-      break;
+      failedCount++;
+      await bumpFailureAndMaybePause(`leg ${v.leg.outcome} ${v.res.result}`);
     }
   }
+  const failed = failedCount > 0;
+  if (session) await updateBetSession(session.id, { placed_legs: placed.length, failed_legs: failedCount });
 
   if (failed && placed.length > 0) {
     // PARTIAL FILL — hedge the placed legs
@@ -313,7 +335,10 @@ async function main() {
   process.on("SIGINT", handler);
   process.on("SIGTERM", handler);
 
-  await Promise.all([commandLoop(), heartbeatLoop(), arbLoop(), keepAliveLoop()]);
+  await Promise.all([
+    commandLoop(), heartbeatLoop(), arbLoop(), keepAliveLoop(),
+    startBalanceSync({ shouldStop: () => stopping }),
+  ]);
 }
 
 main().catch(async (e) => {
