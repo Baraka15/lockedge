@@ -11,6 +11,7 @@ import {
   pushHeartbeat,
   updateBetSession,
   upsertBalance,
+  sb,
 } from "./supabase.js";
 import { getBookmakers, isAvailable, shutdownAll } from "./bookmakers/index.js";
 import { sizeStake } from "./staking.js";
@@ -243,6 +244,18 @@ async function handleCommand(cmd) {
           try { const { balance } = await bm.login(); if (balance != null) await upsertBalance(balance); }
           catch (e) { log.warn(`refresh_balances ${id} failed`, { error: e.message }); }
         }
+        break;
+      }
+      case "place_arb": {
+        // Manual one-click "Place now" from the dashboard. Fetches the arb,
+        // unsets is_acknowledged guard, runs it through processArb immediately.
+        const arbId = cmd.payload?.arb_id;
+        if (!arbId) { log.warn("place_arb missing arb_id"); break; }
+        const { data: arb } = await sb.from("arbs").select("*").eq("id", arbId).maybeSingle();
+        if (!arb) { log.warn("place_arb arb not found", { arbId }); break; }
+        // bypass mode check just for this one
+        const wasMode = mode; mode = "online";
+        try { await processArb(arb); } finally { mode = wasMode; }
         break;
       }
       case "place_bet": case "manual": case "mug_bet": case "hedge": {
