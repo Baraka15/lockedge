@@ -1007,6 +1007,7 @@ function PerformancePanel() {
                 <TableHead className="text-right">Staked</TableHead>
                 <TableHead className="text-right">Returned</TableHead>
                 <TableHead className="text-right">Profit</TableHead>
+                  <TableHead className="text-right">Re-settle</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -1022,6 +1023,11 @@ function PerformancePanel() {
                   <TableCell className={`text-right font-mono ${Number(s.profit) >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
                     {fmt(Number(s.profit))}
                   </TableCell>
+                    <TableCell className="text-right">
+                      {s.arb_id ? (
+                        <SettleArbDialog arbId={s.arb_id} eventName={s.event_name} />
+                      ) : <span className="text-muted-foreground">—</span>}
+                    </TableCell>
                 </TableRow>
               ))}
             </TableBody>
