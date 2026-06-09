@@ -20,8 +20,8 @@ export function isAvailable(bookmakerId) {
   if (k === "betpawa") {
     return !!(process.env.BETPAWA_PHONE || process.env.BETPAWA_EMAIL) && !!process.env.BETPAWA_PASSWORD;
   }
-  if (k === "betway") return !!process.env.BETWAY_USERNAME && !!process.env.BETWAY_PASSWORD;
-  if (k === "sportybet") return !!process.env.SPORTYBET_PHONE && !!process.env.SPORTYBET_PASSWORD;
+  if (k === "betway") return !!(process.env.BETWAY_EMAIL || process.env.BETWAY_USERNAME) && !!process.env.BETWAY_PASSWORD;
+  if (k === "sportybet") return !!(process.env.SPORTYBET_PHONE || process.env.SPORTYBET_EMAIL) && !!process.env.SPORTYBET_PASSWORD;
   return false;
 }
 
