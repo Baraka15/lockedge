@@ -13,6 +13,8 @@ const all = [betpawa, bet22];
 export function getBookmakers() {
   const map = {};
   for (const m of all) map[m.id.toLowerCase()] = m;
+  // Alias: arbs feed may reference "22bet" instead of "bet22".
+  if (map.bet22) map["22bet"] = map.bet22;
   return map;
 }
 
