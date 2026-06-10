@@ -1,8 +1,9 @@
 import * as betpawa from "./betpawa.js";
-import * as betway from "./betway.js";
-import * as sportybet from "./sportybet.js";
+import * as bet22 from "./bet22.js";
 
-const all = [betpawa, betway, sportybet];
+// Uganda market: only Betpawa and 22Bet are active. Betway/Sportybet
+// modules remain in the repo for reference but are not registered.
+const all = [betpawa, bet22];
 
 /**
  * Returns implementation modules keyed by lowercase id. Only modules whose
@@ -20,8 +21,9 @@ export function isAvailable(bookmakerId) {
   if (k === "betpawa") {
     return !!(process.env.BETPAWA_PHONE || process.env.BETPAWA_EMAIL) && !!process.env.BETPAWA_PASSWORD;
   }
-  if (k === "betway") return !!(process.env.BETWAY_EMAIL || process.env.BETWAY_USERNAME) && !!process.env.BETWAY_PASSWORD;
-  if (k === "sportybet") return !!(process.env.SPORTYBET_PHONE || process.env.SPORTYBET_EMAIL) && !!process.env.SPORTYBET_PASSWORD;
+  if (k === "bet22" || k === "22bet") {
+    return !!process.env.BET22_USERNAME && !!process.env.BET22_PASSWORD;
+  }
   return false;
 }
 
