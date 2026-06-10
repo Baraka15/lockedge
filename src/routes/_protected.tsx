@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -13,23 +13,23 @@ function ProtectedLayout() {
   useEffect(() => {
     let mounted = true;
     (async () => {
+      // PIN gate (set by /login) OR Supabase session — either grants access.
+      const pinOk = typeof window !== "undefined" && localStorage.getItem("pin_authed") === "1";
+      if (pinOk) {
+        if (!mounted) return;
+        setAuthed(true);
+        setChecked(true);
+        return;
+      }
       const { data } = await supabase.auth.getUser();
       if (!mounted) return;
-      setAuthed(!!data.user);
+      const ok = !!data.user;
+      setAuthed(ok);
       setChecked(true);
-      if (!data.user) {
-        throw redirect({ to: "/login" });
-      }
+      if (!ok) window.location.href = "/login";
     })();
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
-      setAuthed(!!session);
-      if (!session) {
-        window.location.href = "/login";
-      }
-    });
     return () => {
       mounted = false;
-      subscription.unsubscribe();
     };
   }, []);
 
