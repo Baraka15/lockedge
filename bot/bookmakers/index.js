@@ -1,36 +1,70 @@
+/**
+ * BOOKMAKER REGISTRY
+ * Uganda market: BetPawa, 22Bet, SportPesa, Betway
+ * Each module must export: id, name, isConfigured, placeBet, verifyOdds, getBalance, shutdown
+ */
+
 import * as betpawa from "./betpawa.js";
 import * as bet22 from "./bet22.js";
+import * as sportpesa from "./sportpesa.js";
+import * as betway from "./betway.js";
 
-// Uganda market: only Betpawa and 22Bet are active. Betway/Sportybet
-// modules remain in the repo for reference but are not registered.
-const all = [betpawa, bet22];
+const all = [betpawa, bet22, sportpesa, betway];
 
 /**
- * Returns implementation modules keyed by lowercase id. Only modules whose
- * required env vars are present are considered "available" — others are
- * registered but their methods throw, so processArb skips them with a warning.
+ * Get all bookmakers keyed by lowercase id
+ * Only modules with env vars configured are "available" (non-null)
+ * Returns map: { betpawa: {...}, bet22: {...}, sportpesa: {...}, betway: {...} }
  */
 export function getBookmakers() {
   const map = {};
-  for (const m of all) map[m.id.toLowerCase()] = m;
-  // Alias: arbs feed may reference "22bet" instead of "bet22".
+  for (const m of all) {
+    if (m.isConfigured?.()) {
+      map[m.id.toLowerCase()] = m;
+    }
+  }
+  // Aliases
   if (map.bet22) map["22bet"] = map.bet22;
   return map;
 }
 
+/**
+ * Check if a bookmaker is available (credentials present)
+ */
 export function isAvailable(bookmakerId) {
   const k = (bookmakerId || "").toLowerCase();
-  if (k === "betpawa") {
-    return !!(process.env.BETPAWA_PHONE || process.env.BETPAWA_EMAIL) && !!process.env.BETPAWA_PASSWORD;
-  }
-  if (k === "bet22" || k === "22bet") {
-    return !!process.env.BET22_USERNAME && !!process.env.BET22_PASSWORD;
-  }
-  return false;
+  const aliases = { "22bet": "bet22" };
+  const normalized = aliases[k] || k;
+
+  const bm = all.find((m) => m.id.toLowerCase() === normalized);
+  return bm && bm.isConfigured?.() ? true : false;
 }
 
+/**
+ * Shutdown all bookmakers
+ */
 export async function shutdownAll() {
   for (const m of all) {
-    try { await m.shutdown(); } catch {}
+    try {
+      if (m.shutdown) await m.shutdown();
+    } catch (e) {
+      console.error(`[shutdownAll] ${m.id} shutdown error:`, e.message);
+    }
   }
 }
+
+/**
+ * Get active bookmakers list
+ */
+export function getActiveBookmakers() {
+  return all
+    .filter((m) => m.isConfigured?.())
+    .map((m) => ({ id: m.id, name: m.name }));
+}
+
+export default {
+  getBookmakers,
+  isAvailable,
+  shutdownAll,
+  getActiveBookmakers,
+};

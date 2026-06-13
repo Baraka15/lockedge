@@ -1,57 +1,108 @@
 /**
- * Telegram notifications — no-op if TELEGRAM_BOT_TOKEN is not set.
- * Also writes a row to public.notifications so the dashboard can audit.
+ * TELEGRAM NOTIFICATIONS
+ * Real-time alerts for placements, errors, daily reports
  */
-import { sb } from "./supabase.js";
+
 import { log } from "./logger.js";
 
-const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const DEFAULT_CHAT = process.env.TELEGRAM_CHAT_ID || "7168775421";
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || "";
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || "";
+const API_URL = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
 
-export async function notify({ kind, title, body, payload = {}, chatId }) {
-  const target = chatId || DEFAULT_CHAT;
-  const text = `*${title ?? kind}*\n${body ?? ""}`.trim();
+let lastNotificationTime = 0;
+const NOTIFICATION_DEBOUNCE_MS = 500; // Min 500ms between notifications
 
-  let status = "pending";
-  let error = null;
-
-  if (!TOKEN) {
-    status = "skipped";
-    error = "TELEGRAM_BOT_TOKEN not set";
-  } else if (!target) {
-    status = "skipped";
-    error = "no chat_id configured";
-  } else {
-    try {
-      const res = await fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chat_id: target, text, parse_mode: "Markdown" }),
-      });
-      if (!res.ok) {
-        status = "failed";
-        error = `HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`;
-      } else {
-        status = "sent";
-      }
-    } catch (e) {
-      status = "failed";
-      error = e.message;
-    }
+/**
+ * Send Telegram message
+ */
+async function sendTelegram(message) {
+  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
+    log.warn("[Telegram] Not configured");
+    return false;
   }
 
   try {
-    await sb.from("notifications").insert({
-      channel: "telegram",
-      kind,
-      title: title ?? kind,
-      body: body ?? null,
-      payload,
-      status,
-      error,
-      sent_at: status === "sent" ? new Date().toISOString() : null,
+    // Debounce rapid notifications
+    const now = Date.now();
+    if (now - lastNotificationTime < NOTIFICATION_DEBOUNCE_MS) {
+      return true; // Skip
+    }
+    lastNotificationTime = now;
+
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: TELEGRAM_CHAT_ID,
+        text: message,
+        parse_mode: "Markdown",
+      }),
     });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    return true;
   } catch (e) {
-    log.warn("[notify] failed to log notification", { error: e.message });
+    log.error("[Telegram] Send failed", { error: e.message });
+    return false;
   }
 }
+
+/**
+ * NOTIFY interface
+ * Formats and sends notifications based on kind
+ */
+export async function notify({ kind, title, body }) {
+  let message = "";
+
+  switch (kind) {
+    case "startup":
+      message = `🤖 *${title}*\n${body}`;
+      break;
+    case "status":
+      message = `📊 *${title}*\n${body}`;
+      break;
+    case "arb_placed":
+      message = `✅ *${title}*\n${body}`;
+      break;
+    case "odds_drift":
+      message = `⚠️ *${title}*\n${body}`;
+      break;
+    case "rescue_hedge":
+      message = `🛡️ *${title}*\n${body}`;
+      break;
+    case "auto_pause":
+      message = `⛔ *${title}*\n${body}`;
+      break;
+    case "daily_report":
+      message = `📈 *${title}*\n${body}`;
+      break;
+    case "error":
+      message = `❌ *${title}*\n${body}`;
+      break;
+    default:
+      message = `${title}\n${body}`;
+  }
+
+  return await sendTelegram(message);
+}
+
+/**
+ * Send formatted daily report
+ */
+export async function sendDailyReport(performance) {
+  const report = [
+    "📅 *Daily Performance Report*",
+    "",
+    `Start: ${performance.startBankroll.toLocaleString()} UGX`,
+    `Current: ${performance.currentBankroll.toLocaleString()} UGX`,
+    `Gain: +${performance.dailyGain.toLocaleString()} UGX (${performance.dailyGainPct}%)`,
+    `Target: ${performance.targetAmount.toLocaleString()} UGX (${performance.targetGrowthPct}%)`,
+    `Status: ${performance.status}`,
+  ].join("\n");
+
+  return await sendTelegram(report);
+}
+
+export default { notify, sendDailyReport };
