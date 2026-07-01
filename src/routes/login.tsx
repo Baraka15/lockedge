@@ -1,33 +1,62 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
-const ACCESS_PIN = "8267"; // change this to your preferred PIN
+// Optional quick-access PIN (kept as an escape hatch in case email login is unavailable).
+const ACCESS_PIN = "8267";
 
 export const Route = createFileRoute("/login")({
-  head: () => ({ meta: [{ title: "Enter PIN — Sure Bets" }] }),
+  head: () => ({ meta: [{ title: "Sign in — Sure Bets" }] }),
   component: LoginPage,
 });
 
 function LoginPage() {
   const navigate = useNavigate();
-  const [pin, setPin] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const onSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
+      if (session) navigate({ to: "/dashboard", replace: true });
+    });
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    if (pin.trim() === ACCESS_PIN) {
+
+    // PIN escape hatch: type the PIN into the email field to bypass Supabase.
+    if (email.trim() === ACCESS_PIN && !password) {
       localStorage.setItem("pin_authed", "1");
-      toast.success("Access granted");
+      toast.success("Access granted (PIN)");
       navigate({ to: "/dashboard", replace: true });
-    } else {
-      toast.error("Wrong PIN");
+      setLoading(false);
+      return;
     }
-    setLoading(false);
+
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+      if (error) {
+        toast.error(error.message);
+      } else {
+        toast.success("Signed in");
+        navigate({ to: "/dashboard", replace: true });
+      }
+    } catch (err) {
+      console.error("[login] signIn failed", err);
+      toast.error((err as Error).message || "Sign-in failed");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -37,30 +66,43 @@ function LoginPage() {
         className="w-full max-w-sm space-y-5 rounded-xl border border-border bg-card p-6 shadow-sm"
       >
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">Enter PIN</h1>
+          <h1 className="text-2xl font-semibold text-foreground">Sign in</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Quick access to your arb dashboard. Default PIN:{" "}
-            <span className="font-mono font-semibold text-foreground">{ACCESS_PIN}</span>
+            Use your email and password. Or type PIN{" "}
+            <span className="font-mono font-semibold text-foreground">{ACCESS_PIN}</span>{" "}
+            in the email field (leave password blank) for quick access.
           </p>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="pin">PIN</Label>
+          <Label htmlFor="email">Email</Label>
           <Input
-            id="pin"
-            type="password"
-            inputMode="numeric"
-            pattern="[0-9]*"
+            id="email"
+            type="text"
             autoFocus
             required
-            value={pin}
-            onChange={(e) => setPin(e.target.value)}
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="password">Password</Label>
+          <Input
+            id="password"
+            type="password"
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
           />
         </div>
         <Button type="submit" className="w-full" disabled={loading}>
-          {loading ? "Checking..." : "Unlock"}
+          {loading ? "Signing in..." : "Sign in"}
         </Button>
         <p className="text-center text-xs text-muted-foreground">
-          <Link to="/signup" className="underline-offset-4 hover:underline">Use email sign-up instead</Link>
+          No account?{" "}
+          <Link to="/signup" className="font-medium text-foreground underline-offset-4 hover:underline">
+            Create one
+          </Link>
         </p>
       </form>
     </div>
