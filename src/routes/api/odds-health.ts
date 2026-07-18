@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { fetchAllAfricanOdds } from "@/lib/odds/scrapers";
 
 /**
  * Ping TheOddsAPI and write the status to agent_status.metadata.odds_api_status
@@ -32,6 +33,29 @@ export const Route = createFileRoute("/api/odds-health")({
 
         const snapshot = { status, detail, remaining, checked_at: new Date().toISOString() };
 
+        // Ping every African scraper in parallel and record per-bookmaker status.
+        let scraperSummary: {
+          live: number;
+          total: number;
+          results: { bookmaker: string; ok: boolean; count: number; latency_ms: number; error?: string }[];
+        } = { live: 0, total: 0, results: [] };
+        try {
+          const s = await fetchAllAfricanOdds();
+          scraperSummary = {
+            live: s.liveCount,
+            total: s.totalCount,
+            results: s.results.map((r) => ({
+              bookmaker: r.bookmaker,
+              ok: r.ok,
+              count: r.count,
+              latency_ms: r.latencyMs,
+              error: r.error,
+            })),
+          };
+        } catch (e) {
+          console.error("[odds-health] scrapers check failed", e);
+        }
+
         // Write to agent_status so it lights up the header badge.
         try {
           const { data: existing } = await supabaseAdmin
@@ -48,7 +72,7 @@ export const Route = createFileRoute("/api/odds-health")({
           console.error("[odds-health] persist failed", e);
         }
 
-        return Response.json({ ok: true, ...snapshot });
+        return Response.json({ ok: true, ...snapshot, scrapers: scraperSummary });
       },
     },
   },
