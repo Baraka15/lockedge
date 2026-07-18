@@ -4,6 +4,7 @@ import { matchFixtures } from "./odds/matcher";
 import { normalizeOdds } from "./odds/normalizer";
 import { generateMockOdds } from "./odds/providers/mock-provider.server";
 import { fetchTheOddsApi } from "./odds/providers/theoddsapi-provider.server";
+import { fetchAllAfricanOddsAsRaw } from "./odds/scrapers";
 import { notify } from "./notifications.server";
 import type { MasterFixture, RawOdds } from "./odds/types";
 
@@ -34,6 +35,7 @@ export async function runPollCycle(): Promise<PollResult> {
 
     const hasRealKey = !!(process.env.THEODDSAPI_KEY || process.env.ODDS_API_KEY);
     const includeMock = process.env.INCLUDE_MOCK_ODDS === "true" || !hasRealKey;
+    const disableScrapers = process.env.DISABLE_AFRICAN_SCRAPERS === "true";
     const tasks: Promise<RawOdds[]>[] = [];
     const providerOrder: string[] = [];
     if (includeMock) {
@@ -43,6 +45,16 @@ export async function runPollCycle(): Promise<PollResult> {
     if (hasRealKey) {
       providerOrder.push("theoddsapi");
       tasks.push(fetchTheOddsApi());
+    }
+    if (!disableScrapers) {
+      providerOrder.push("african_scrapers");
+      tasks.push(fetchAllAfricanOddsAsRaw().then((r) => {
+        const okCount = r.summary.results.filter((x) => x.ok).length;
+        console.log(
+          `[engine] african scrapers: ${okCount}/${r.summary.totalCount} live, ${r.raw.length} odds rows`,
+        );
+        return r.raw;
+      }));
     }
     providers.length = 0;
     providers.push(...providerOrder);
