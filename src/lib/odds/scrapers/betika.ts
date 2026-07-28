@@ -54,7 +54,10 @@ export async function scrapeBetika(): Promise<ScrapedOdds[]> {
     const rows = (json as { data?: BetikaRow[] })?.data ?? [];
     for (const r of rows) {
       if (!r?.home_team || !r?.away_team || !r?.start_time) continue;
-      if (r.is_srl || r.provider === "sr") continue;
+      // is_srl marks Simulated Reality League matches (RNG, never real).
+      // Note: provider === "sr" means Sport Radar as data source, NOT SRL —
+      // real Chelsea/UEFA fixtures come in with provider "sr" too.
+      if (r.is_srl) continue;
       const start = parseBetikaTime(r.start_time);
       if (!start || start.getTime() <= Date.now()) continue;
       const h = Number(r.home_odd);
