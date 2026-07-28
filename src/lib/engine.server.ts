@@ -228,10 +228,7 @@ export async function runPollCycle(): Promise<PollResult> {
           dedup_key: a.dedupKey,
           is_acknowledged: false,
         }));
-      if (!rows.length) {
-        // All detected arbs were already acknowledged this cycle; nothing to write.
-        return { arbsDetected, durationMs: Date.now() - started, providers };
-      }
+      if (rows.length) {
       // Refresh expires_at on re-detection: if the same opportunity is still
       // priced across bookmakers, we want the countdown to reset, not the row
       // to be ignored. We only overwrite mutable columns; we never resurrect
