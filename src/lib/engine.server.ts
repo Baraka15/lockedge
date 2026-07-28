@@ -265,6 +265,7 @@ export async function runPollCycle(): Promise<PollResult> {
       } catch (e) {
         console.error("[engine] notify failed", e);
       }
+      }
     }
 
     // Note: a pg_cron job ('arbs-cleanup-stale') prunes expired arbs and
