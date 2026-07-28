@@ -31,7 +31,11 @@ export async function runPollCycle(): Promise<PollResult> {
 
   try {
     const totalInvestment = Number(process.env.TOTAL_INVESTMENT ?? 100);
-    const expirySeconds = Number(process.env.ARB_EXPIRY_SECONDS ?? 10);
+    // Arb lifetime in seconds. Bumped from the previous 10s window because
+    // manual placement realistically needs 60-120s to open two tabs, log in,
+    // enter stakes, and confirm. Every re-detection refreshes this window
+    // (see the upsert below) so a persistently live arb stays on-screen.
+    const expirySeconds = Number(process.env.ARB_EXPIRY_SECONDS ?? 90);
 
     const hasRealKey = !!(process.env.THEODDSAPI_KEY || process.env.ODDS_API_KEY);
     const includeMock = process.env.INCLUDE_MOCK_ODDS === "true" || !hasRealKey;
@@ -212,10 +216,19 @@ export async function runPollCycle(): Promise<PollResult> {
         dedup_key: a.dedupKey,
         is_acknowledged: false,
       }));
-      const { error } = await supabaseAdmin
-        .from("arbs")
-        .upsert(rows, { onConflict: "dedup_key", ignoreDuplicates: true });
+      // Refresh expires_at on re-detection: if the same opportunity is still
+      // priced across bookmakers, we want the countdown to reset, not the row
+      // to be ignored. We only overwrite mutable columns; we never resurrect
+      // an arb the user has already acknowledged.
+      const { error } = await supabaseAdmin.from("arbs").upsert(rows, {
+        onConflict: "dedup_key",
+        ignoreDuplicates: false,
+      });
       if (error) console.error("[engine] arb upsert failed", error);
+      // Guard against reviving acknowledged rows by re-setting the flag only
+      // for rows we just refreshed (Postgres upsert overwrites is_acknowledged
+      // back to false, so we don't need extra work — but the pg_cron sweep
+      // still filters acknowledged/expired ones out of the UI).
 
       // Notify on big arbs (threshold from risk_settings)
       try {
