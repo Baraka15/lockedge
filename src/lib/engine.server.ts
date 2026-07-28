@@ -205,17 +205,33 @@ export async function runPollCycle(): Promise<PollResult> {
     if (arbs.length) {
       const now = new Date();
       const expires = new Date(now.getTime() + expirySeconds * 1000);
-      const rows = arbs.map((a) => ({
-        event_name: a.eventName,
-        market_type: a.marketType,
-        outcomes: a.outcomes,
-        total_arb_percent: a.totalArbPercent,
-        required_total_stake: a.requiredTotalStake,
-        detected_at: now.toISOString(),
-        expires_at: expires.toISOString(),
-        dedup_key: a.dedupKey,
-        is_acknowledged: false,
-      }));
+      // Never revive arbs the user has already acknowledged.
+      const dedupKeys = arbs.map((a) => a.dedupKey);
+      const { data: acked } = await supabaseAdmin
+        .from("arbs")
+        .select("dedup_key")
+        .eq("is_acknowledged", true)
+        .in("dedup_key", dedupKeys);
+      const ackedSet = new Set(
+        (acked ?? []).map((r: { dedup_key: string }) => r.dedup_key),
+      );
+      const rows = arbs
+        .filter((a) => !ackedSet.has(a.dedupKey))
+        .map((a) => ({
+          event_name: a.eventName,
+          market_type: a.marketType,
+          outcomes: a.outcomes,
+          total_arb_percent: a.totalArbPercent,
+          required_total_stake: a.requiredTotalStake,
+          detected_at: now.toISOString(),
+          expires_at: expires.toISOString(),
+          dedup_key: a.dedupKey,
+          is_acknowledged: false,
+        }));
+      if (!rows.length) {
+        // All detected arbs were already acknowledged this cycle; nothing to write.
+        return { arbsDetected, durationMs: Date.now() - started, providers };
+      }
       // Refresh expires_at on re-detection: if the same opportunity is still
       // priced across bookmakers, we want the countdown to reset, not the row
       // to be ignored. We only overwrite mutable columns; we never resurrect
