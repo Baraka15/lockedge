@@ -9,8 +9,10 @@ export function detectArbs(
   for (const [groupKey, group] of groups) {
     const arb = calculateArb(group, totalInvestment);
     if (!arb) continue;
-    const detectedSlot = Math.floor(Date.now() / 10_000); // dedupe within 10s
-    const dedupKey = `${groupKey}::${detectedSlot}`;
+    // Stable key per event+market: re-detection refreshes the existing row's
+    // expires_at (see engine upsert) instead of inserting a near-duplicate
+    // card every poll cycle.
+    const dedupKey = groupKey;
     out.push({ ...arb, dedupKey });
   }
   return out;
