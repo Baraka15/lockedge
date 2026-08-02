@@ -273,6 +273,19 @@ export async function runScraper(
       fn(),
       new Promise<ScrapedOdds[]>((_, rej) => setTimeout(() => rej(new Error("scraper timeout")), timeoutMs)),
     ]);
+    // A scraper that answers with zero rows is NOT healthy — either the endpoint
+    // changed shape or it is being blocked. Reporting ok:true here previously hid
+    // dead sources behind a green badge.
+    if (race.length === 0) {
+      return {
+        bookmaker,
+        ok: false,
+        count: 0,
+        latencyMs: Date.now() - started,
+        error: "returned 0 matches (endpoint blocked or shape changed)",
+        odds: [],
+      };
+    }
     return { bookmaker, ok: true, count: race.length, latencyMs: Date.now() - started, odds: race };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
