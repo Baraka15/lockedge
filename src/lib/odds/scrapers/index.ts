@@ -28,6 +28,11 @@ const SCRAPERS: Array<{ id: string; run: () => Promise<ScrapedOdds[]> }> = [
   { id: "bangbet", run: scrapeBangbet },
 ];
 
+// Consecutive-failure counter, kept per worker invocation. A source that keeps
+// failing is still attempted once per cycle (so it recovers automatically) but we
+// stop paying the retry penalty for it, which used to add ~5s to every cycle.
+const failStreak = new Map<string, number>();
+
 /**
  * Fetch odds from every African bookmaker in parallel. Each scraper has its
  * own timeout and one automatic retry on failure. Returns per-bookmaker
@@ -35,14 +40,18 @@ const SCRAPERS: Array<{ id: string; run: () => Promise<ScrapedOdds[]> }> = [
  */
 export async function fetchAllAfricanOdds(): Promise<AfricanScrapeSummary> {
   const wrapped = SCRAPERS.map(async (s) => {
-    await jitter(500);
-    let first = await runScraper(s.id, s.run, 10_000);
-    if (!first.ok || first.count === 0) {
-      await new Promise((r) => setTimeout(r, 5000));
+    await jitter(300);
+    let result = await runScraper(s.id, s.run, 10_000);
+    const streak = failStreak.get(s.id) ?? 0;
+    // Retry once with a short backoff, but only for sources that are usually
+    // healthy — persistently blocked ones would otherwise stall every cycle.
+    if (!result.ok && streak < 3) {
+      await new Promise((r) => setTimeout(r, 1200));
       const retry = await runScraper(s.id, s.run, 10_000);
-      if (retry.ok && retry.count > first.count) first = retry;
+      if (retry.count > result.count) result = retry;
     }
-    return first;
+    failStreak.set(s.id, result.ok ? 0 : streak + 1);
+    return result;
   });
   const results = await Promise.allSettled(wrapped);
   const settled: ScraperResult[] = results.map((r, i) =>
@@ -52,6 +61,10 @@ export async function fetchAllAfricanOdds(): Promise<AfricanScrapeSummary> {
   );
   const totalOdds = settled.reduce((n, r) => n + r.count, 0);
   const liveCount = settled.filter((r) => r.ok).length;
+  console.log(
+    `[scrapers] ${liveCount}/${SCRAPERS.length} live, ${totalOdds} odds rows — ` +
+      settled.map((r) => `${r.bookmaker}:${r.ok ? r.count : "FAIL"}`).join(" "),
+  );
 
   // Persist per-scraper telemetry so the dashboard can render statuses.
   try {
@@ -69,10 +82,16 @@ export async function fetchAllAfricanOdds(): Promise<AfricanScrapeSummary> {
     );
     await supabaseAdmin.from("agent_status").upsert({
       agent_id: "engine",
-      status: existing?.status ?? "online",
+      status: liveCount > 0 ? "online" : "degraded",
       last_heartbeat: new Date().toISOString(),
       version: existing?.version ?? "engine-1.0.0",
-      metadata: { ...meta, scrapers } as never,
+      metadata: {
+        ...meta,
+        scrapers,
+        scrapers_live: liveCount,
+        scrapers_total: SCRAPERS.length,
+        last_cycle_at: new Date().toISOString(),
+      } as never,
     }, { onConflict: "agent_id" });
   } catch (e) {
     console.error("[scrapers] telemetry persist failed", e);
