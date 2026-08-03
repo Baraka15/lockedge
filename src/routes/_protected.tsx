@@ -13,14 +13,9 @@ function ProtectedLayout() {
   useEffect(() => {
     let mounted = true;
     (async () => {
-      // PIN gate (set by /login) OR Supabase session — either grants access.
-      const pinOk = typeof window !== "undefined" && localStorage.getItem("pin_authed") === "1";
-      if (pinOk) {
-        if (!mounted) return;
-        setAuthed(true);
-        setChecked(true);
-        return;
-      }
+      // Access requires a real Supabase session; data access is further gated by
+      // the operator role in row-level security policies.
+      if (typeof window !== "undefined") localStorage.removeItem("pin_authed");
       const { data } = await supabase.auth.getUser();
       if (!mounted) return;
       const ok = !!data.user;
