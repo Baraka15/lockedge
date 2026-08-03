@@ -6,9 +6,6 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
-// Optional quick-access PIN (kept as an escape hatch in case email login is unavailable).
-const ACCESS_PIN = "8267";
-
 export const Route = createFileRoute("/login")({
   head: () => ({ meta: [{ title: "Sign in — Sure Bets" }] }),
   component: LoginPage,
@@ -30,15 +27,6 @@ function LoginPage() {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
-    // PIN escape hatch: type the PIN into the email field to bypass Supabase.
-    if (email.trim() === ACCESS_PIN && !password) {
-      localStorage.setItem("pin_authed", "1");
-      toast.success("Access granted (PIN)");
-      navigate({ to: "/dashboard", replace: true });
-      setLoading(false);
-      return;
-    }
 
     try {
       const { error } = await supabase.auth.signInWithPassword({
@@ -68,16 +56,14 @@ function LoginPage() {
         <div>
           <h1 className="text-2xl font-semibold text-foreground">Sign in</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Use your email and password. Or type PIN{" "}
-            <span className="font-mono font-semibold text-foreground">{ACCESS_PIN}</span>{" "}
-            in the email field (leave password blank) for quick access.
+            Operator access only. Sign in with your email and password.
           </p>
         </div>
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
           <Input
             id="email"
-            type="text"
+            type="email"
             autoFocus
             required
             autoComplete="email"
@@ -90,6 +76,7 @@ function LoginPage() {
           <Input
             id="password"
             type="password"
+            required
             autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
