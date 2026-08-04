@@ -119,6 +119,11 @@ export async function fetchAllAfricanOdds(): Promise<AfricanScrapeSummary> {
         scrapers,
         scrapers_live: liveCount,
         scrapers_total: SCRAPERS.length,
+        scrapers_disabled: ALL_SCRAPERS.filter((s) => !s.enabled).map((s) => ({
+          id: s.id,
+          reason: s.note ?? "disabled",
+        })),
+        scrapers_priority: SCRAPERS.map((s) => `${s.id}:t${s.tier}`),
         last_cycle_at: new Date().toISOString(),
       } as never,
     }, { onConflict: "agent_id" });
