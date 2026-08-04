@@ -17,7 +17,7 @@ const SPORTS: Array<{ id: number; name: string }> = [
   { id: 2, name: "tennis" },
 ];
 
-interface Ev { T?: number; C?: number }
+interface Ev { T?: number; C?: number; G?: number }
 interface Row { O1?: string; O2?: string; S?: number; L?: string; LE?: string; E?: Ev[] }
 
 function parse(json: unknown, sport: string): ScrapedOdds[] {
@@ -34,6 +34,7 @@ function parse(json: unknown, sport: string): ScrapedOdds[] {
     for (const e of raw.E ?? []) {
       const c = Number(e?.C);
       if (!Number.isFinite(c) || c <= 1) continue;
+      if (e.G !== undefined && Number(e.G) !== 1) continue; // 1X2 group only
       if (e.T === 1) h = c;
       else if (e.T === 2) d = c;
       else if (e.T === 3) a = c;
@@ -58,13 +59,19 @@ export async function scrape22Bet(): Promise<ScrapedOdds[]> {
   let lastError = "no mirror reachable";
   for (const base of MIRRORS) {
     const out: ScrapedOdds[] = [];
+    let rawRows = 0;
     try {
       for (const s of SPORTS) {
         const url = `${base}/LiveFeed/Get1x2_VZip?sports=${s.id}&count=200&lng=en&mode=4&country=232`;
-        out.push(...parse(await fetchJson(url, { referer: `${base}/`, timeoutMs: 8000 }), s.name));
+        const json = await fetchJson(url, { referer: `${base}/`, timeoutMs: 8000 });
+        const value = (json as { Value?: unknown } | null)?.Value;
+        rawRows += Array.isArray(value) ? value.length : 0;
+        out.push(...parse(json, s.name));
       }
       if (out.length) return out;
-      lastError = `${base} returned no usable rows`;
+      lastError = rawRows === 0
+        ? `${base} returned an empty feed (server IP likely filtered)`
+        : `${base} returned ${rawRows} rows but none with a 1X2 price`;
     } catch (e) {
       lastError = `${base}: ${e instanceof Error ? e.message : String(e)}`;
     }
