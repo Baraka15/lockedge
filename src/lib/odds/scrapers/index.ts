@@ -9,6 +9,8 @@ import { scrape1xBet } from "./onexbet";
 import { scrapeMelBet } from "./melbet";
 import { scrapeBangbet } from "./bangbet";
 import { scrapeSportyBet } from "./sportybet";
+import { scrape22Bet } from "./bet22";
+import { scrape1win } from "./onewin";
 
 export interface AfricanScrapeSummary {
   results: ScraperResult[];
@@ -17,16 +19,43 @@ export interface AfricanScrapeSummary {
   totalCount: number;
 }
 
-const SCRAPERS: Array<{ id: string; run: () => Promise<ScrapedOdds[]> }> = [
-  { id: "sportybet", run: scrapeSportyBet },
-  { id: "betpawa", run: scrapeBetPawa },
-  { id: "betika", run: scrapeBetika },
-  { id: "odibets", run: scrapeOdibets },
-  { id: "msport", run: scrapeMsport },
-  { id: "1xbet", run: scrape1xBet },
-  { id: "melbet", run: scrapeMelBet },
-  { id: "bangbet", run: scrapeBangbet },
+/**
+ * Source registry, ordered by how reliably each book produces real, priced
+ * arbs for a Uganda-based operator.
+ *
+ *  tier 1 — proven live, deep prematch coverage, accounts usable in UG.
+ *  tier 2 — reachable but thinner/in-play-only coverage.
+ *  tier 3 — usually blocked (Cloudflare / bot protection); kept so they
+ *           recover automatically if they ever open up.
+ *
+ * `enabled: false` sources are not scraped at all. SportyBet and Msport are
+ * disabled because they are not usable from Uganda for this account, so
+ * scraping them only burns cycle time and pollutes health telemetry.
+ */
+export interface ScraperEntry {
+  id: string;
+  run: () => Promise<ScrapedOdds[]>;
+  tier: 1 | 2 | 3;
+  enabled: boolean;
+  note?: string;
+}
+
+const ALL_SCRAPERS: ScraperEntry[] = [
+  { id: "betpawa", run: scrapeBetPawa, tier: 1, enabled: true },
+  { id: "betika", run: scrapeBetika, tier: 1, enabled: true },
+  { id: "22bet", run: scrape22Bet, tier: 2, enabled: true, note: "in-play feed only" },
+  { id: "odibets", run: scrapeOdibets, tier: 2, enabled: true },
+  { id: "1win", run: scrape1win, tier: 2, enabled: true, note: "mirrors often geo-blocked" },
+  { id: "1xbet", run: scrape1xBet, tier: 3, enabled: true },
+  { id: "melbet", run: scrapeMelBet, tier: 3, enabled: true },
+  { id: "bangbet", run: scrapeBangbet, tier: 3, enabled: true },
+  { id: "sportybet", run: scrapeSportyBet, tier: 3, enabled: false, note: "not available in Uganda" },
+  { id: "msport", run: scrapeMsport, tier: 3, enabled: false, note: "not available in Uganda" },
 ];
+
+const SCRAPERS: ScraperEntry[] = ALL_SCRAPERS.filter((s) => s.enabled).sort(
+  (a, b) => a.tier - b.tier,
+);
 
 // Consecutive-failure counter, kept per worker invocation. A source that keeps
 // failing is still attempted once per cycle (so it recovers automatically) but we
@@ -90,6 +119,11 @@ export async function fetchAllAfricanOdds(): Promise<AfricanScrapeSummary> {
         scrapers,
         scrapers_live: liveCount,
         scrapers_total: SCRAPERS.length,
+        scrapers_disabled: ALL_SCRAPERS.filter((s) => !s.enabled).map((s) => ({
+          id: s.id,
+          reason: s.note ?? "disabled",
+        })),
+        scrapers_priority: SCRAPERS.map((s) => `${s.id}:t${s.tier}`),
         last_cycle_at: new Date().toISOString(),
       } as never,
     }, { onConflict: "agent_id" });
@@ -106,4 +140,4 @@ export async function fetchAllAfricanOddsAsRaw(): Promise<{ raw: RawOdds[]; summ
   return { raw: toRawOdds(flat), summary };
 }
 
-export { SCRAPERS };
+export { SCRAPERS, ALL_SCRAPERS };

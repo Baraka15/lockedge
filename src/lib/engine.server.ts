@@ -72,10 +72,13 @@ export async function runPollCycle(): Promise<PollResult> {
 
     const normalized = raw.map(normalizeOdds);
 
-    // Drop any odds whose event has already started — institutional bar.
+    // Keep upcoming events plus a short in-play window: 22bet only exposes its
+    // live feed, and in-play prices are still actionable for a manual placer.
+    // Anything older than the window is treated as finished.
     const nowMs = Date.now();
+    const inPlayWindowMs = Number(process.env.IN_PLAY_WINDOW_MINUTES ?? 120) * 60 * 1000;
     const upcoming = normalized.filter(
-      (n) => new Date(n.eventDate).getTime() > nowMs,
+      (n) => new Date(n.eventDate).getTime() > nowMs - inPlayWindowMs,
     );
 
     // Dedupe per (bookmaker, event, market, outcome) — keep latest fetch.

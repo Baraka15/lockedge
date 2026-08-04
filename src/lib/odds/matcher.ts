@@ -1,7 +1,14 @@
 import type { MasterFixture, NormalizedOdds } from "./types";
 import { canonicalTeam, teamSimilarity } from "./team-aliases";
 
-const STRICT_THRESHOLD = 0.85;
+// Tightened from 0.85: at 0.85 near-miss pairs ("Sporting CP" vs "Sporting Gijon",
+// reserve/U21 sides, same-named clubs in different leagues) were being grouped and
+// produced arbs that don't exist. 0.93 requires an essentially exact alias match.
+const STRICT_THRESHOLD = 0.93;
+
+// Two bookmakers must also agree on kickoff time within this window before their
+// prices are treated as the same market.
+const MAX_KICKOFF_DRIFT_MS = 2 * 60 * 60 * 1000;
 
 /**
  * Strict event grouping:
@@ -74,6 +81,15 @@ export function matchFixtures(
       if (!sameOrientation) {
         console.warn(
           `[matcher] dropped odds with reversed orientation for ${groupKey} (${odds.bookmaker})`,
+        );
+        continue;
+      }
+      const drift = Math.abs(
+        new Date(ref.eventDate).getTime() - new Date(odds.eventDate).getTime(),
+      );
+      if (drift > MAX_KICKOFF_DRIFT_MS) {
+        console.warn(
+          `[matcher] dropped odds with kickoff drift ${Math.round(drift / 60000)}min for ${groupKey} (${odds.bookmaker})`,
         );
         continue;
       }
