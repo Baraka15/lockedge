@@ -1,10 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Activity, LogOut, RefreshCw, Shield, Zap } from "lucide-react";
+import { Activity, Lock, LogOut, RefreshCw, Shield, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ArbCard } from "@/components/ArbCard";
+import { PinSettingsCard } from "@/components/PinSettingsCard";
 import { useLiveArbs } from "@/hooks/useLiveArbs";
 import { supabase } from "@/integrations/supabase/client";
+import { isPinEnabled, lockNow } from "@/lib/pin-lock";
 
 export const Route = createFileRoute("/_protected/dashboard")({
   head: () => ({ meta: [{ title: "Live Sure Bets — Dashboard" }] }),
@@ -102,6 +104,11 @@ function Dashboard() {
     await supabase.auth.signOut();
   };
 
+  const lockScreen = () => {
+    lockNow();
+    window.location.href = "/login";
+  };
+
   const lastPollSeconds = statusQuery.data?.lastPollAt
     ? Math.round((Date.now() - new Date(statusQuery.data.lastPollAt).getTime()) / 1000)
     : null;
@@ -125,6 +132,12 @@ function Dashboard() {
               <RefreshCw className="h-4 w-4" />
               Scan now
             </Button>
+            {isPinEnabled() && (
+              <Button variant="outline" size="sm" onClick={lockScreen}>
+                <Lock className="h-4 w-4" />
+                Lock
+              </Button>
+            )}
             <Button variant="ghost" size="sm" onClick={signOut}>
               <LogOut className="h-4 w-4" />
               Sign out
