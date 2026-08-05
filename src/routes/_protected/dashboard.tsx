@@ -226,6 +226,11 @@ function Dashboard() {
             </div>
           )}
         </section>
+
+        <section className="mt-10">
+          <h2 className="mb-3 text-base font-semibold text-foreground">Access</h2>
+          <PinSettingsCard />
+        </section>
       </main>
     </div>
   );
