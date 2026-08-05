@@ -1,6 +1,7 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { isUnlocked } from "@/lib/pin-lock";
 
 export const Route = createFileRoute("/_protected")({
   component: ProtectedLayout,
@@ -18,7 +19,8 @@ function ProtectedLayout() {
       if (typeof window !== "undefined") localStorage.removeItem("pin_authed");
       const { data } = await supabase.auth.getUser();
       if (!mounted) return;
-      const ok = !!data.user;
+      // Session is the real gate; the PIN is only a device-local quick lock.
+      const ok = !!data.user && isUnlocked();
       setAuthed(ok);
       setChecked(true);
       if (!ok) window.location.href = "/login";
