@@ -230,13 +230,17 @@ function Dashboard() {
         </section>
 
         <section className="mt-10">
-          <h2 className="mb-3 text-base font-semibold text-foreground">Access</h2>
-          <div className="mb-6 grid gap-4 lg:grid-cols-3">
+          <h2 className="mb-3 text-base font-semibold text-foreground">Realised vs theoretical</h2>
+          <div className="grid gap-4 lg:grid-cols-3">
             <div className="lg:col-span-2">
               <ProfitGapTracker />
             </div>
             <AccountSafetyPanel />
           </div>
+        </section>
+
+        <section className="mt-10">
+          <h2 className="mb-3 text-base font-semibold text-foreground">Access</h2>
           <PinSettingsCard />
         </section>
       </main>
