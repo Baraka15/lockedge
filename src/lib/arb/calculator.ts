@@ -1,7 +1,18 @@
 import type { ArbOpportunity, NormalizedOdds } from "../odds/types";
 
-/** Highest inverse-sum still counted as an arb (minimum real edge ~1%). */
-const MAX_ARB_PERCENT = 99;
+/**
+ * Highest inverse-sum still counted as a true sure bet. 99.7 => a minimum real
+ * edge of ~0.3%. It used to be 99 (1% edge), which discarded the large majority
+ * of genuine, placeable arbs on African books where edges cluster at 0.3-0.9%.
+ */
+const MAX_SURE_PERCENT = 99.7;
+/**
+ * Above 100 there is no guaranteed profit, but a book under ~101.5% is the
+ * lowest-hold price in the market. These are surfaced as "value" plays: they
+ * are the cheapest possible way to keep turnover and bet patterns looking
+ * recreational (account longevity) between real sure bets.
+ */
+const MAX_VALUE_PERCENT = 101.5;
 /** Anything "better" than a ~12% edge across these books is a data error. */
 const MIN_ARB_PERCENT = 88;
 /** Best price may not exceed the market median by more than this factor. */
@@ -64,8 +75,10 @@ export function calculateArb(
   // Reject borderline values caused by rounding noise, and reject implausibly
   // large "edges" which in practice always trace back to bad data (wrong market,
   // wrong fixture, stale quote).
-  if (!(arbPercent < MAX_ARB_PERCENT)) return null;
+  if (!(arbPercent < MAX_VALUE_PERCENT)) return null;
   if (arbPercent < MIN_ARB_PERCENT) return null;
+  const tier: "sure" | "value" = arbPercent < MAX_SURE_PERCENT ? "sure" : "value";
+  const bookMarginPct = Math.max(0, Math.round((arbPercent - 100) * 1000) / 1000);
 
   // Stake proportional to 1/odds so all outcomes return ~ totalInvestment / inverseSum
   const outcomes = best.map((b) => {
@@ -90,5 +103,7 @@ export function calculateArb(
     outcomes,
     totalArbPercent: Math.round(arbPercent * 1000) / 1000,
     requiredTotalStake,
+    tier,
+    bookMarginPct,
   };
 }
