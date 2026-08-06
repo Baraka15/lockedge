@@ -46,4 +46,13 @@ export interface ArbOpportunity {
   expiresAt: string;
   isAcknowledged: boolean;
   dedupKey: string;
+  /**
+   * "sure"  — sum(1/odds) < 1, mathematically risk-free.
+   * "value" — near-arb (book margin under ~1.5%). Not risk-free, but the
+   *           lowest-hold prices in the market: used to keep turnover and
+   *           betting patterns looking recreational between real sure bets.
+   */
+  tier: "sure" | "value";
+  /** Book margin in % (0 for a sure bet, positive for a value play). */
+  bookMarginPct: number;
 }

@@ -230,6 +230,8 @@ export async function runPollCycle(): Promise<PollResult> {
           expires_at: expires.toISOString(),
           dedup_key: a.dedupKey,
           is_acknowledged: false,
+          tier: a.tier,
+          book_margin_pct: a.bookMarginPct,
         }));
       if (rows.length) {
       // Refresh expires_at on re-detection: if the same opportunity is still
@@ -255,10 +257,13 @@ export async function runPollCycle(): Promise<PollResult> {
         const minEdge = Number((rs as { notify_min_edge_pct?: number } | null)?.notify_min_edge_pct ?? 2);
         if (enabled) {
           for (const a of arbs) {
-            if (a.totalArbPercent >= minEdge) {
+            // Real edge, not the inverse-sum: 99.1% book => 0.9% edge. Only
+            // true sure bets are worth an alert; value plays stay on-screen.
+            const edgePct = 100 - a.totalArbPercent;
+            if (a.tier === "sure" && edgePct >= minEdge) {
               await notify({
                 kind: "arb_detected",
-                title: `Arb ${a.totalArbPercent.toFixed(2)}%`,
+                title: `Arb +${edgePct.toFixed(2)}%`,
                 body: `${a.eventName} • ${a.marketType}`,
                 payload: { dedupKey: a.dedupKey },
               });

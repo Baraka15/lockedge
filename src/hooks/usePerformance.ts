@@ -15,6 +15,9 @@ export interface Settlement {
   total_returned: number;
   profit: number;
   settled_at: string;
+  theoretical_profit?: number | null;
+  theoretical_stake?: number | null;
+  theoretical_edge_pct?: number | null;
 }
 
 export function useSettlements(limit = 200) {

@@ -3,6 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Activity, Lock, LogOut, RefreshCw, Shield, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ArbCard } from "@/components/ArbCard";
+import { ProfitGapTracker } from "@/components/ProfitGapTracker";
+import { AccountSafetyPanel } from "@/components/AccountSafetyPanel";
 import { PinSettingsCard } from "@/components/PinSettingsCard";
 import { useLiveArbs } from "@/hooks/useLiveArbs";
 import { supabase } from "@/integrations/supabase/client";
@@ -225,6 +227,16 @@ function Dashboard() {
               ))}
             </div>
           )}
+        </section>
+
+        <section className="mt-10">
+          <h2 className="mb-3 text-base font-semibold text-foreground">Realised vs theoretical</h2>
+          <div className="grid gap-4 lg:grid-cols-3">
+            <div className="lg:col-span-2">
+              <ProfitGapTracker />
+            </div>
+            <AccountSafetyPanel />
+          </div>
         </section>
 
         <section className="mt-10">

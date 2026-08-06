@@ -70,6 +70,7 @@ export type Database = {
       }
       arbs: {
         Row: {
+          book_margin_pct: number
           created_at: string
           dedup_key: string
           detected_at: string
@@ -80,9 +81,11 @@ export type Database = {
           market_type: string
           outcomes: Json
           required_total_stake: number
+          tier: string
           total_arb_percent: number
         }
         Insert: {
+          book_margin_pct?: number
           created_at?: string
           dedup_key: string
           detected_at?: string
@@ -93,9 +96,11 @@ export type Database = {
           market_type: string
           outcomes: Json
           required_total_stake: number
+          tier?: string
           total_arb_percent: number
         }
         Update: {
+          book_margin_pct?: number
           created_at?: string
           dedup_key?: string
           detected_at?: string
@@ -106,6 +111,7 @@ export type Database = {
           market_type?: string
           outcomes?: Json
           required_total_stake?: number
+          tier?: string
           total_arb_percent?: number
         }
         Relationships: []
@@ -449,6 +455,9 @@ export type Database = {
           match_date: string | null
           profit: number
           settled_at: string
+          theoretical_edge_pct: number
+          theoretical_profit: number
+          theoretical_stake: number
           total_returned: number
           total_staked: number
           winning_outcome: string | null
@@ -463,6 +472,9 @@ export type Database = {
           match_date?: string | null
           profit?: number
           settled_at?: string
+          theoretical_edge_pct?: number
+          theoretical_profit?: number
+          theoretical_stake?: number
           total_returned?: number
           total_staked?: number
           winning_outcome?: string | null
@@ -477,6 +489,9 @@ export type Database = {
           match_date?: string | null
           profit?: number
           settled_at?: string
+          theoretical_edge_pct?: number
+          theoretical_profit?: number
+          theoretical_stake?: number
           total_returned?: number
           total_staked?: number
           winning_outcome?: string | null
