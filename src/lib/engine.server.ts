@@ -230,6 +230,8 @@ export async function runPollCycle(): Promise<PollResult> {
           expires_at: expires.toISOString(),
           dedup_key: a.dedupKey,
           is_acknowledged: false,
+          tier: a.tier,
+          book_margin_pct: a.bookMarginPct,
         }));
       if (rows.length) {
       // Refresh expires_at on re-detection: if the same opportunity is still
