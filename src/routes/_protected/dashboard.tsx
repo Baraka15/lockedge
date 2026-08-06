@@ -3,6 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Activity, Lock, LogOut, RefreshCw, Shield, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ArbCard } from "@/components/ArbCard";
+import { ProfitGapTracker } from "@/components/ProfitGapTracker";
+import { AccountSafetyPanel } from "@/components/AccountSafetyPanel";
 import { PinSettingsCard } from "@/components/PinSettingsCard";
 import { useLiveArbs } from "@/hooks/useLiveArbs";
 import { supabase } from "@/integrations/supabase/client";
