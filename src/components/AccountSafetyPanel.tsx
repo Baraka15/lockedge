@@ -9,7 +9,7 @@ import { assessAccountRisk, mugBetsNeeded, type BookExposure } from "@/lib/arb/a
  * of each book's action is arb legs, and what to do before the book notices.
  */
 export function AccountSafetyPanel() {
-  const { logs } = useBetLogs(200);
+  const logs = useBetLogs(200);
 
   const { risks, betsByBook } = useMemo(() => {
     const map = new Map<string, { turnover: number; bets: number; arbBets: number }>();
