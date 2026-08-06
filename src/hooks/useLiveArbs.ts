@@ -13,6 +13,8 @@ interface ArbRow {
   expires_at: string;
   is_acknowledged: boolean;
   dedup_key: string;
+  tier?: string | null;
+  book_margin_pct?: number | string | null;
 }
 
 function fromRow(r: ArbRow): ArbOpportunity {
@@ -27,6 +29,8 @@ function fromRow(r: ArbRow): ArbOpportunity {
     expiresAt: r.expires_at,
     isAcknowledged: r.is_acknowledged,
     dedupKey: r.dedup_key,
+    tier: r.tier === "value" ? "value" : "sure",
+    bookMarginPct: Number(r.book_margin_pct ?? 0),
   };
 }
 
