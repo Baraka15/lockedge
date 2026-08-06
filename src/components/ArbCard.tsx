@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useBookmakerHealth, confidenceScore } from "@/hooks/useBookmakerHealth";
+import { camouflageStake, placementOrder } from "@/lib/arb/account-safety";
 import type { ArbOpportunity } from "@/lib/odds/types";
 
 interface Props {
@@ -29,6 +30,12 @@ export function ArbCard({ arb, onAcknowledge }: Props) {
   const profit = (arb.requiredTotalStake / arb.totalArbPercent) * 100 - arb.requiredTotalStake;
   const profitPct = ((100 - arb.totalArbPercent) / arb.totalArbPercent) * 100;
   const health = useBookmakerHealth();
+  const isValue = arb.tier === "value";
+
+  // Place the least reliable / fastest-moving leg first: fewer half-hedged
+  // positions means less slippage and fewer "chasing" patterns on the books.
+  const reliabilityMap = Object.fromEntries(health.map((h) => [h.bookmaker, h.reliability]));
+  const orderedOutcomes = placementOrder(arb.outcomes, reliabilityMap);
 
   // pulse tier based on time remaining: red <30s, yellow 30-120s, green >120s
   const tier = remaining < 30 ? "red" : remaining < 120 ? "yellow" : "green";
@@ -75,6 +82,9 @@ export function ArbCard({ arb, onAcknowledge }: Props) {
           <p className="mt-0.5 flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
             <span>{arb.marketType}</span>
             <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
+              isValue ? "bg-sky-500/15 text-sky-400" : "bg-emerald-500/15 text-emerald-400"
+            }`}>{isValue ? "value" : "sure"}</span>
+            <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
               confidence >= 70 ? "bg-emerald-500/15 text-emerald-400"
               : confidence >= 40 ? "bg-amber-500/15 text-amber-400"
               : "bg-rose-500/15 text-rose-400"
@@ -82,10 +92,17 @@ export function ArbCard({ arb, onAcknowledge }: Props) {
           </p>
         </div>
         <div className="flex flex-col items-end gap-1">
-          <div className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-            <TrendingUp className="h-3.5 w-3.5" />
-            +{profitPct.toFixed(2)}%
-          </div>
+          {isValue ? (
+            <div className="inline-flex items-center gap-1 rounded-full bg-sky-500/10 px-2.5 py-1 text-xs font-semibold text-sky-600 dark:text-sky-400">
+              <TrendingUp className="h-3.5 w-3.5" />
+              −{arb.bookMarginPct.toFixed(2)}% hold
+            </div>
+          ) : (
+            <div className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+              <TrendingUp className="h-3.5 w-3.5" />
+              +{profitPct.toFixed(2)}%
+            </div>
+          )}
           <div
             className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold tabular-nums ${
               urgent
@@ -111,29 +128,38 @@ export function ArbCard({ arb, onAcknowledge }: Props) {
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {arb.outcomes.map((o) => (
+            {orderedOutcomes.map((o, i) => {
+              const shaped = camouflageStake({ stake: o.stake, odds: o.odds });
+              return (
               <tr key={`${o.name}-${o.bookmaker}`}>
-                <td className="px-3 py-2 capitalize text-foreground">{o.name}</td>
+                <td className="px-3 py-2 capitalize text-foreground">
+                  <span className="mr-1 font-mono text-[10px] text-muted-foreground">{i + 1}.</span>
+                  {o.name}
+                </td>
                 <td className="px-3 py-2 capitalize text-muted-foreground">{o.bookmaker}</td>
                 <td className="px-3 py-2 text-right font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">
                   {o.odds.toFixed(2)}
                 </td>
                 <td className="px-3 py-2 text-right font-semibold tabular-nums text-foreground">
-                  {o.stake.toFixed(2)}
+                  {shaped.camouflaged.toFixed(2)}
+                  <span className="ml-1 text-[10px] font-normal text-muted-foreground">
+                    ({o.stake.toFixed(2)})
+                  </span>
                 </td>
                 <td className="px-2 py-1 text-right">
                   <Button
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7"
-                    onClick={() => copyStake(o.stake, o.name)}
+                    onClick={() => copyStake(shaped.camouflaged, o.name)}
                     aria-label={`Copy stake for ${o.name}`}
                   >
                     <Copy className="h-3.5 w-3.5" />
                   </Button>
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -142,7 +168,17 @@ export function ArbCard({ arb, onAcknowledge }: Props) {
         <div className="text-xs text-muted-foreground tabular-nums">
           Total stake <span className="font-semibold text-foreground">{arb.requiredTotalStake.toFixed(2)}</span>
           {" • "}
-          Guaranteed profit <span className="font-semibold text-emerald-600 dark:text-emerald-400">+{profit.toFixed(2)}</span>
+          {isValue ? (
+            <>Low-hold cover bet <span className="font-semibold text-sky-600 dark:text-sky-400">
+              −{arb.bookMarginPct.toFixed(2)}% expected
+            </span></>
+          ) : (
+            <>Guaranteed profit <span className="font-semibold text-emerald-600 dark:text-emerald-400">+{profit.toFixed(2)}</span></>
+          )}
+          {" • "}
+          <span title="Stakes are rounded to human-looking amounts to protect the account">
+            camouflaged stakes
+          </span>
         </div>
         <div className="flex gap-2">
           <Button size="sm" variant="outline" onClick={manualPlace}>
