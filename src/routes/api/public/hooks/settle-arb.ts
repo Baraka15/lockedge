@@ -18,7 +18,7 @@ export const Route = createFileRoute("/api/public/hooks/settle-arb")({
 
         const { data: arb } = await supabaseAdmin
           .from("arbs")
-          .select("id, event_name, market_type, outcomes")
+          .select("id, event_name, market_type, outcomes, total_arb_percent, required_total_stake")
           .eq("id", arb_id)
           .maybeSingle();
         if (!arb) {
@@ -43,6 +43,17 @@ export const Route = createFileRoute("/api/public/hooks/settle-arb")({
         }
         const profit = total_returned - total_staked;
 
+        // Theoretical = what the on-screen arb promised at detection time.
+        // Stored alongside the realised numbers so the dashboard can show the
+        // slippage gap (odds movement, rejected legs, partial fills, rounding).
+        const arbPct = Number(arb.total_arb_percent ?? 0);
+        const theoretical_stake = Number(arb.required_total_stake ?? 0);
+        const theoretical_edge_pct = Math.max(0, 100 - arbPct);
+        const theoretical_profit =
+          arbPct > 0 && arbPct < 100
+            ? (theoretical_stake / arbPct) * 100 - theoretical_stake
+            : 0;
+
         const { error } = await supabaseAdmin.from("settlements").insert({
           arb_id,
           event_name: arb.event_name,
@@ -53,11 +64,21 @@ export const Route = createFileRoute("/api/public/hooks/settle-arb")({
           total_staked,
           total_returned,
           profit,
+          theoretical_profit,
+          theoretical_stake,
+          theoretical_edge_pct,
         });
         if (error) {
           return Response.json({ ok: false, error: error.message }, { status: 500 });
         }
-        return Response.json({ ok: true, total_staked, total_returned, profit });
+        return Response.json({
+          ok: true,
+          total_staked,
+          total_returned,
+          profit,
+          theoretical_profit,
+          slippage: theoretical_profit - profit,
+        });
       },
     },
   },
