@@ -120,7 +120,7 @@ export function SetupWizard() {
 
         {step === 2 && (
           <div className="space-y-2 text-sm">
-            <p className="text-muted-foreground">Tick each bookmaker whose credentials you've already set in <code className="font-mono text-xs">bot/.env</code>:</p>
+            <p className="text-muted-foreground">Tick each bookmaker where you hold an account and will place bets by hand:</p>
             {(["betpawa", "sportybet", "betway"] as const).map((k) => (
               <label key={k} className="flex items-center justify-between rounded-md border border-border/60 px-3 py-2">
                 <div>
