@@ -91,8 +91,9 @@ export function SetupWizard() {
             <ul className="ml-5 list-disc space-y-1 text-muted-foreground">
               <li>Polls TheOddsAPI for live odds across bookmakers.</li>
               <li>Detects arbitrage opportunities in real time.</li>
-              <li>A local Puppeteer bot places synchronised bets on BetPawa, SportyBet, BetWay.</li>
-              <li>Sends Telegram alerts for big arbs and tracks every settlement.</li>
+              <li>Alerts you on Telegram for every true sure bet — you place both legs manually.</li>
+              <li>Tracks every settlement, actual vs theoretical profit, and account safety.</li>
+
             </ul>
             <p className="text-muted-foreground">This wizard takes ~2 minutes.</p>
           </div>
