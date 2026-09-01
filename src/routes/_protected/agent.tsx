@@ -700,23 +700,8 @@ function ManualCommandPanelInner({
   onSend: (cmd: string, payload?: Record<string, unknown>) => Promise<void>;
   disabled: boolean;
 }) {
-  const [arbId, setArbId] = useState("");
-  const [stake, setStake] = useState("");
-  const [bookmaker, setBookmaker] = useState("");
-  const [outcome, setOutcome] = useState("");
-  const [odds, setOdds] = useState("");
   const [customCmd, setCustomCmd] = useState("");
   const [customPayload, setCustomPayload] = useState("{}");
-
-  const submitBet = (kind: "mug_bet" | "hedge" | "manual") => async () => {
-    const payload: Record<string, unknown> = {};
-    if (arbId) payload.arb_id = arbId;
-    if (bookmaker) payload.bookmaker = bookmaker;
-    if (outcome) payload.outcome = outcome;
-    if (stake) payload.stake = Number(stake);
-    if (odds) payload.odds = Number(odds);
-    await onSend(kind, payload);
-  };
 
   const submitCustom = async () => {
     if (!customCmd.trim()) {
@@ -736,93 +721,20 @@ function ManualCommandPanelInner({
   return (
     <div className="grid gap-4 lg:grid-cols-2">
       <Card className="p-5">
-        <h3 className="text-sm font-semibold">Place a targeted bet</h3>
+        <h3 className="text-sm font-semibold">Placement is manual</h3>
         <p className="mt-1 text-xs text-muted-foreground">
-          Queue a mug bet, hedge, or fully manual execution. Leave fields blank
-          to let the agent fill them.
+          Bet queuing has been removed. No bookmaker login, bet-slip filling or
+          bet submission happens anywhere in this system. Use the Telegram alert
+          or the dashboard arb card, tap the match-page link for each leg, and
+          place both bets yourself — then hit “Placed”.
         </p>
-        <div className="mt-4 grid grid-cols-2 gap-3">
-          <div className="col-span-2 space-y-1.5">
-            <Label htmlFor="arb">Arb ID (optional)</Label>
-            <Input
-              id="arb"
-              value={arbId}
-              onChange={(e) => setArbId(e.target.value)}
-              placeholder="uuid"
-              className="font-mono text-xs"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="bm">Bookmaker</Label>
-            <Input
-              id="bm"
-              value={bookmaker}
-              onChange={(e) => setBookmaker(e.target.value)}
-              placeholder="pinnacle"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="out">Outcome</Label>
-            <Input
-              id="out"
-              value={outcome}
-              onChange={(e) => setOutcome(e.target.value)}
-              placeholder="home"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="odds">Odds</Label>
-            <Input
-              id="odds"
-              type="number"
-              step="0.01"
-              value={odds}
-              onChange={(e) => setOdds(e.target.value)}
-              placeholder="2.10"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="stake">Stake</Label>
-            <Input
-              id="stake"
-              type="number"
-              step="0.01"
-              value={stake}
-              onChange={(e) => setStake(e.target.value)}
-              placeholder="50.00"
-            />
-          </div>
-        </div>
         <Separator className="my-4" />
-        <div className="flex flex-wrap gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={disabled}
-            onClick={submitBet("mug_bet")}
-          >
-            <Send className="mr-1.5 h-3.5 w-3.5" />
-            Mug bet
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={disabled}
-            onClick={submitBet("hedge")}
-          >
-            <Send className="mr-1.5 h-3.5 w-3.5" />
-            Hedge
-          </Button>
-          <Button
-            size="sm"
-            disabled={disabled}
-            onClick={submitBet("manual")}
-          >
-            <Send className="mr-1.5 h-3.5 w-3.5" />
-            Manual
-          </Button>
-        </div>
+        <p className="text-xs text-muted-foreground">
+          Alerts fire on true sure bets only. Labelled value / cover bets stay
+          on the dashboard and are never pushed to Telegram.
+        </p>
       </Card>
+
 
       <Card className="p-5">
         <h3 className="text-sm font-semibold">Custom command</h3>
