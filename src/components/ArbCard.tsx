@@ -168,15 +168,12 @@ export function ArbCard({ arb, onAcknowledge }: Props) {
           </span>
         </div>
         <div className="flex gap-2">
-          <Button size="sm" variant="outline" onClick={manualPlace}>
-            <Zap className="mr-1 h-4 w-4" />
-            Place now
-          </Button>
           <Button size="sm" onClick={() => onAcknowledge(arb.id)}>
             <Check className="h-4 w-4" />
             Placed
           </Button>
         </div>
+
       </div>
     </div>
   );
