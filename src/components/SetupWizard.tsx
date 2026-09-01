@@ -126,7 +126,7 @@ export function SetupWizard() {
                 <div>
                   <div className="capitalize font-medium">{k}</div>
                   <div className="text-[11px] text-muted-foreground">
-                    Requires {k.toUpperCase()}_{k === "betpawa" ? "PHONE" : k === "sportybet" ? "PHONE/EMAIL" : "EMAIL"} + _PASSWORD
+                    Used for stake sizing and exposure tracking only
                   </div>
                 </div>
                 <Switch checked={bms[k]} onCheckedChange={(v) => setBms({ ...bms, [k]: v })} />
