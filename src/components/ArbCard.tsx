@@ -54,19 +54,6 @@ export function ArbCard({ arb, onAcknowledge }: Props) {
     toast.success(`Copied ${label} stake: ${value.toFixed(2)}`);
   };
 
-  const manualPlace = async () => {
-    try {
-      const { data: userData } = await supabase.auth.getUser();
-      const { error } = await (supabase as any).from("agent_commands").insert({
-        command: "place_arb", payload: { arb_id: arb.id, force: true },
-        created_by: userData.user?.id ?? null,
-      });
-      if (error) throw error;
-      toast.success("Manual place queued — bot will execute immediately");
-    } catch (e) {
-      toast.error(`Queue failed: ${(e as Error).message}`);
-    }
-  };
 
   const stripeCls = tier === "red"
     ? "bg-rose-500 animate-pulse"
