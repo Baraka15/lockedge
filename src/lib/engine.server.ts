@@ -248,7 +248,8 @@ export async function runPollCycle(): Promise<PollResult> {
       // back to false, so we don't need extra work — but the pg_cron sweep
       // still filters acknowledged/expired ones out of the UI).
 
-      // Notify on big arbs (threshold from risk_settings)
+      // Notify on true sure bets only (threshold from risk_settings).
+      // Value / near-arb cover bets are never alerted — dashboard only.
       try {
         const { data: rs } = await supabaseAdmin
           .from("risk_settings").select("notify_enabled, notify_min_edge_pct")
@@ -260,19 +261,37 @@ export async function runPollCycle(): Promise<PollResult> {
             // Real edge, not the inverse-sum: 99.1% book => 0.9% edge. Only
             // true sure bets are worth an alert; value plays stay on-screen.
             const edgePct = 100 - a.totalArbPercent;
-            if (a.tier === "sure" && edgePct >= minEdge) {
-              await notify({
-                kind: "arb_detected",
-                title: `Arb +${edgePct.toFixed(2)}%`,
-                body: `${a.eventName} • ${a.marketType}`,
-                payload: { dedupKey: a.dedupKey },
-              });
-            }
+            if (a.tier !== "sure" || edgePct < minEdge) continue;
+
+            const legs = a.outcomes.map((o, i) => {
+              const url = matchPageUrl(o.bookmaker, a.eventName);
+              const line =
+                `${i + 1}. *${o.name}* @ *${o.odds.toFixed(2)}* — ${o.bookmaker}\n` +
+                `   Stake: *${Math.round(o.stake).toLocaleString()}*`;
+              return url ? `${line}\n   [Open ${o.bookmaker} match page](${url})` : line;
+            });
+
+            await notify({
+              kind: "arb_detected",
+              title: `🎯 SURE BET +${edgePct.toFixed(2)}%`,
+              body: [
+                `${a.eventName}`,
+                `Market: ${a.marketType}`,
+                `Arb: ${a.totalArbPercent.toFixed(2)}% (edge +${edgePct.toFixed(2)}%)`,
+                `Total stake: ${Math.round(a.requiredTotalStake).toLocaleString()}`,
+                "",
+                ...legs,
+                "",
+                "_Place both legs manually — links open the match page, not a prefilled slip._",
+              ].join("\n"),
+              payload: { dedupKey: a.dedupKey, edgePct, outcomes: a.outcomes },
+            });
           }
         }
       } catch (e) {
         console.error("[engine] notify failed", e);
       }
+
       }
     }
 
