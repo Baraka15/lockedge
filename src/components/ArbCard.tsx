@@ -123,7 +123,23 @@ export function ArbCard({ arb, onAcknowledge }: Props) {
                   <span className="mr-1 font-mono text-[10px] text-muted-foreground">{i + 1}.</span>
                   {o.name}
                 </td>
-                <td className="px-3 py-2 capitalize text-muted-foreground">{o.bookmaker}</td>
+                <td className="px-3 py-2 capitalize text-muted-foreground">
+                  {matchPageUrl(o.bookmaker, arb.eventName) ? (
+                    <a
+                      href={matchPageUrl(o.bookmaker, arb.eventName) as string}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 underline decoration-dotted hover:text-foreground"
+                      title="Opens the bookmaker match page — place the bet manually"
+                    >
+                      {o.bookmaker}
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  ) : (
+                    o.bookmaker
+                  )}
+                </td>
+
                 <td className="px-3 py-2 text-right font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">
                   {o.odds.toFixed(2)}
                 </td>
