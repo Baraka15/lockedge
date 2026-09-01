@@ -91,8 +91,9 @@ export function SetupWizard() {
             <ul className="ml-5 list-disc space-y-1 text-muted-foreground">
               <li>Polls TheOddsAPI for live odds across bookmakers.</li>
               <li>Detects arbitrage opportunities in real time.</li>
-              <li>A local Puppeteer bot places synchronised bets on BetPawa, SportyBet, BetWay.</li>
-              <li>Sends Telegram alerts for big arbs and tracks every settlement.</li>
+              <li>Alerts you on Telegram for every true sure bet — you place both legs manually.</li>
+              <li>Tracks every settlement, actual vs theoretical profit, and account safety.</li>
+
             </ul>
             <p className="text-muted-foreground">This wizard takes ~2 minutes.</p>
           </div>
@@ -119,13 +120,13 @@ export function SetupWizard() {
 
         {step === 2 && (
           <div className="space-y-2 text-sm">
-            <p className="text-muted-foreground">Tick each bookmaker whose credentials you've already set in <code className="font-mono text-xs">bot/.env</code>:</p>
+            <p className="text-muted-foreground">Tick each bookmaker where you hold an account and will place bets by hand:</p>
             {(["betpawa", "sportybet", "betway"] as const).map((k) => (
               <label key={k} className="flex items-center justify-between rounded-md border border-border/60 px-3 py-2">
                 <div>
                   <div className="capitalize font-medium">{k}</div>
                   <div className="text-[11px] text-muted-foreground">
-                    Requires {k.toUpperCase()}_{k === "betpawa" ? "PHONE" : k === "sportybet" ? "PHONE/EMAIL" : "EMAIL"} + _PASSWORD
+                    Used for stake sizing and exposure tracking only
                   </div>
                 </div>
                 <Switch checked={bms[k]} onCheckedChange={(v) => setBms({ ...bms, [k]: v })} />
