@@ -1,11 +1,12 @@
-import { Check, Clock, Copy, TrendingUp, Zap } from "lucide-react";
+import { Check, Clock, Copy, ExternalLink, TrendingUp } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 import { useBookmakerHealth, confidenceScore } from "@/hooks/useBookmakerHealth";
 import { camouflageStake, placementOrder } from "@/lib/arb/account-safety";
+import { matchPageUrl } from "@/lib/arb/bookmaker-links";
 import type { ArbOpportunity } from "@/lib/odds/types";
+
 
 interface Props {
   arb: ArbOpportunity;
