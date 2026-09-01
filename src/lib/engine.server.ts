@@ -6,6 +6,8 @@ import { generateMockOdds } from "./odds/providers/mock-provider.server";
 import { fetchTheOddsApi } from "./odds/providers/theoddsapi-provider.server";
 import { fetchAllAfricanOddsAsRaw } from "./odds/scrapers";
 import { notify } from "./notifications.server";
+import { matchPageUrl } from "./arb/bookmaker-links";
+
 import type { MasterFixture, RawOdds } from "./odds/types";
 
 export interface PollResult {
