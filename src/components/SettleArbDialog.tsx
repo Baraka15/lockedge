@@ -12,6 +12,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { describeNetworkError, fetchJson } from "@/lib/net";
 
 interface Props {
   arbId: string;
@@ -31,9 +32,10 @@ export function SettleArbDialog({ arbId, eventName, outcomes = [], trigger, onSe
   const submit = async () => {
     setSubmitting(true);
     try {
-      const res = await fetch("/api/public/hooks/settle-arb", {
+      const j = await fetchJson<any>("/api/public/hooks/settle-arb", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        timeoutMs: 30_000,
         body: JSON.stringify({
           arb_id: arbId,
           winning_outcome: winning,
@@ -41,15 +43,14 @@ export function SettleArbDialog({ arbId, eventName, outcomes = [], trigger, onSe
           away_score: away ? Number(away) : undefined,
         }),
       });
-      const j = await res.json();
-      if (!res.ok || !j.ok) throw new Error(j.error || `HTTP ${res.status}`);
+      if (!j.ok) throw new Error(j.error || "Settlement was rejected by the server.");
       const profit = Number(j.profit ?? 0);
       toast.success(`Settled: ${profit >= 0 ? "+" : ""}${profit.toFixed(2)}`,
         { description: `Staked ${Number(j.total_staked).toFixed(2)} · Returned ${Number(j.total_returned).toFixed(2)}` });
       setOpen(false);
       onSettled?.();
     } catch (e) {
-      toast.error(`Settle failed: ${(e as Error).message}`);
+      toast.error(`Settle failed: ${describeNetworkError(e)}`);
     } finally {
       setSubmitting(false);
     }

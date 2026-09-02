@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { describeNetworkError, fetchJson } from "@/lib/net";
 
 const sb = supabase as unknown as { from: (t: string) => any; channel: (n: string) => any; removeChannel: (c: any) => void };
 
@@ -73,11 +74,10 @@ export function useOddsApiHealth(pollMs = 10 * 60 * 1000) {
     let stopped = false;
     const ping = async () => {
       try {
-        const r = await fetch("/api/odds-health");
-        const j = await r.json();
+        const j = await fetchJson<any>("/api/odds-health");
         if (!stopped) setS({ status: j.status, detail: j.detail, remaining: j.remaining, checked_at: j.checked_at });
       } catch (e) {
-        if (!stopped) setS({ status: "error", detail: (e as Error).message });
+        if (!stopped) setS({ status: "error", detail: describeNetworkError(e) });
       }
     };
     ping();

@@ -1,6 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Activity, Lock, LogOut, RefreshCw, Shield, Zap } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import { Activity, AlertTriangle, Lock, LogOut, RefreshCw, Shield, Zap } from "lucide-react";
+import { describeNetworkError, fetchJson } from "@/lib/net";
 import { Button } from "@/components/ui/button";
 import { ArbCard } from "@/components/ArbCard";
 import { ProfitGapTracker } from "@/components/ProfitGapTracker";
@@ -56,54 +59,66 @@ interface SettlementArb {
 
 function Dashboard() {
   const { arbs, acknowledgeArb } = useLiveArbs();
+  const [scanning, setScanning] = useState(false);
 
   const statusQuery = useQuery<EngineStatus>({
     queryKey: ["engine-status"],
-    queryFn: async () => {
-      const res = await fetch("/api/engine-status");
-      return res.json();
-    },
+    queryFn: () => fetchJson<EngineStatus>("/api/engine-status"),
     refetchInterval: 5000,
+    retry: 1,
   });
 
   const statsQuery = useQuery<Stats>({
     queryKey: ["stats"],
-    queryFn: async () => {
-      const res = await fetch("/api/stats");
-      return res.json();
-    },
+    queryFn: () => fetchJson<Stats>("/api/stats"),
     refetchInterval: 15000,
+    retry: 1,
   });
 
   const liveEventsQuery = useQuery<{ ok: boolean; events: LiveEvent[] }>({
     queryKey: ["live-events"],
-    queryFn: async () => {
-      const res = await fetch("/api/live-events");
-      return res.json();
-    },
+    queryFn: () => fetchJson<{ ok: boolean; events: LiveEvent[] }>("/api/live-events"),
     refetchInterval: 5000,
+    retry: 1,
   });
   const liveEvents = liveEventsQuery.data?.events ?? [];
 
   const settlementQuery = useQuery<{ ok: boolean; arbs: SettlementArb[] }>({
     queryKey: ["settlement"],
-    queryFn: async () => {
-      const res = await fetch("/api/settlement");
-      return res.json();
-    },
+    queryFn: () => fetchJson<{ ok: boolean; arbs: SettlementArb[] }>("/api/settlement"),
     refetchInterval: 15000,
+    retry: 1,
   });
   const settlementArbs = settlementQuery.data?.arbs ?? [];
 
+  const connectionError = [statusQuery.error, statsQuery.error, liveEventsQuery.error, settlementQuery.error]
+    .filter(Boolean)
+    .map((e) => describeNetworkError(e))[0];
+
   const runNow = async () => {
-    await fetch("/api/public/poll");
-    statusQuery.refetch();
-    statsQuery.refetch();
-    liveEventsQuery.refetch();
+    setScanning(true);
+    try {
+      // A full multi-bookmaker scan can take up to a minute.
+      await fetchJson<{ ok: boolean }>("/api/public/poll", { timeoutMs: 90_000 });
+      toast.success("Scan complete");
+    } catch (err) {
+      toast.error(`Scan failed: ${describeNetworkError(err)}`);
+    } finally {
+      setScanning(false);
+      statusQuery.refetch();
+      statsQuery.refetch();
+      liveEventsQuery.refetch();
+    }
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      toast.error(describeNetworkError(err));
+    } finally {
+      window.location.href = "/login";
+    }
   };
 
   const lockScreen = () => {
@@ -130,9 +145,9 @@ function Dashboard() {
                 Agent
               </Link>
             </Button>
-            <Button variant="outline" size="sm" onClick={runNow}>
-              <RefreshCw className="h-4 w-4" />
-              Scan now
+            <Button variant="outline" size="sm" onClick={runNow} disabled={scanning}>
+              <RefreshCw className={`h-4 w-4 ${scanning ? "animate-spin" : ""}`} />
+              {scanning ? "Scanning..." : "Scan now"}
             </Button>
             {isPinEnabled() && (
               <Button variant="outline" size="sm" onClick={lockScreen}>
@@ -149,6 +164,15 @@ function Dashboard() {
       </header>
 
       <main className="mx-auto max-w-6xl px-4 py-6">
+        {connectionError && (
+          <div
+            role="alert"
+            className="mb-4 flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+          >
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>{connectionError} Live figures below may be out of date.</span>
+          </div>
+        )}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
           <StatTile
             label="Engine"

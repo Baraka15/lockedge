@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Check, ChevronRight, Wifi, WifiOff } from "lucide-react";
 import { toast } from "sonner";
+import { describeNetworkError, fetchJson } from "@/lib/net";
 import { useOddsApiHealth } from "@/hooks/usePerformance";
 
 const LS_KEY = "arb_setup_wizard_completed_v1";
@@ -60,14 +61,13 @@ export function SetupWizard() {
   const sendTestTelegram = async () => {
     if (!telegramChat) { toast.error("Enter a chat id first"); return; }
     try {
-      const res = await fetch("/api/public/hooks/notify-test", {
+      const j = await fetchJson<any>("/api/public/hooks/notify-test", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ chat_id: telegramChat }),
       });
-      const j = await res.json().catch(() => ({}));
-      if (res.ok && j.ok) toast.success("Test sent — check Telegram");
+      if (j.ok) toast.success("Test sent — check Telegram");
       else toast.error(j.error || "Send failed");
-    } catch (e) { toast.error((e as Error).message); }
+    } catch (e) { toast.error(describeNetworkError(e)); }
   };
 
   const stepTitles = ["Welcome", "Bankroll", "Bookmakers", "Odds API", "Telegram"];
