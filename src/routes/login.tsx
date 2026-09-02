@@ -59,8 +59,21 @@ function LoginPage() {
     return () => subscription.unsubscribe();
   }, [navigate, configError]);
 
+  const fail = (err: unknown) => {
+    const message =
+      err instanceof Error && err.message === "Invalid login credentials"
+        ? "That email and password don't match. Use \"Forgot password?\" to set a new one."
+        : describeNetworkError(err);
+    setErrorMsg(message);
+    toast.error(message);
+  };
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (configError) {
+      setErrorMsg(configError);
+      return;
+    }
     setLoading(true);
     setErrorMsg(null);
 
@@ -70,12 +83,7 @@ function LoginPage() {
         password,
       });
       if (error) {
-        setErrorMsg(
-          error.message === "Invalid login credentials"
-            ? "That email and password don't match. Use \"Forgot password?\" to set a new one."
-            : error.message,
-        );
-        toast.error(error.message);
+        fail(error);
       } else {
         markUnlocked();
         toast.success("Signed in");
@@ -83,8 +91,7 @@ function LoginPage() {
       }
     } catch (err) {
       console.error("[login] signIn failed", err);
-      setErrorMsg((err as Error).message || "Sign-in failed");
-      toast.error((err as Error).message || "Sign-in failed");
+      fail(err);
     } finally {
       setLoading(false);
     }
@@ -97,16 +104,21 @@ function LoginPage() {
     }
     setResetting(true);
     setErrorMsg(null);
-    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
-    setResetting(false);
-    if (error) {
-      setErrorMsg(error.message);
-      toast.error(error.message);
-    } else {
-      toast.success("Reset link sent — check your inbox.");
-      setErrorMsg("Reset link sent. Check your inbox for the password reset email.");
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) {
+        fail(error);
+      } else {
+        toast.success("Reset link sent — check your inbox.");
+        setErrorMsg("Reset link sent. Check your inbox for the password reset email.");
+      }
+    } catch (err) {
+      console.error("[login] reset failed", err);
+      fail(err);
+    } finally {
+      setResetting(false);
     }
   };
 
