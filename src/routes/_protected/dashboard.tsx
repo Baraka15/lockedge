@@ -145,9 +145,9 @@ function Dashboard() {
                 Agent
               </Link>
             </Button>
-            <Button variant="outline" size="sm" onClick={runNow}>
-              <RefreshCw className="h-4 w-4" />
-              Scan now
+            <Button variant="outline" size="sm" onClick={runNow} disabled={scanning}>
+              <RefreshCw className={`h-4 w-4 ${scanning ? "animate-spin" : ""}`} />
+              {scanning ? "Scanning..." : "Scan now"}
             </Button>
             {isPinEnabled() && (
               <Button variant="outline" size="sm" onClick={lockScreen}>
