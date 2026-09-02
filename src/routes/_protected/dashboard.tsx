@@ -59,54 +59,66 @@ interface SettlementArb {
 
 function Dashboard() {
   const { arbs, acknowledgeArb } = useLiveArbs();
+  const [scanning, setScanning] = useState(false);
 
   const statusQuery = useQuery<EngineStatus>({
     queryKey: ["engine-status"],
-    queryFn: async () => {
-      const res = await fetch("/api/engine-status");
-      return res.json();
-    },
+    queryFn: () => fetchJson<EngineStatus>("/api/engine-status"),
     refetchInterval: 5000,
+    retry: 1,
   });
 
   const statsQuery = useQuery<Stats>({
     queryKey: ["stats"],
-    queryFn: async () => {
-      const res = await fetch("/api/stats");
-      return res.json();
-    },
+    queryFn: () => fetchJson<Stats>("/api/stats"),
     refetchInterval: 15000,
+    retry: 1,
   });
 
   const liveEventsQuery = useQuery<{ ok: boolean; events: LiveEvent[] }>({
     queryKey: ["live-events"],
-    queryFn: async () => {
-      const res = await fetch("/api/live-events");
-      return res.json();
-    },
+    queryFn: () => fetchJson<{ ok: boolean; events: LiveEvent[] }>("/api/live-events"),
     refetchInterval: 5000,
+    retry: 1,
   });
   const liveEvents = liveEventsQuery.data?.events ?? [];
 
   const settlementQuery = useQuery<{ ok: boolean; arbs: SettlementArb[] }>({
     queryKey: ["settlement"],
-    queryFn: async () => {
-      const res = await fetch("/api/settlement");
-      return res.json();
-    },
+    queryFn: () => fetchJson<{ ok: boolean; arbs: SettlementArb[] }>("/api/settlement"),
     refetchInterval: 15000,
+    retry: 1,
   });
   const settlementArbs = settlementQuery.data?.arbs ?? [];
 
+  const connectionError = [statusQuery.error, statsQuery.error, liveEventsQuery.error, settlementQuery.error]
+    .filter(Boolean)
+    .map((e) => describeNetworkError(e))[0];
+
   const runNow = async () => {
-    await fetch("/api/public/poll");
-    statusQuery.refetch();
-    statsQuery.refetch();
-    liveEventsQuery.refetch();
+    setScanning(true);
+    try {
+      // A full multi-bookmaker scan can take up to a minute.
+      await fetchJson<{ ok: boolean }>("/api/public/poll", { timeoutMs: 90_000 });
+      toast.success("Scan complete");
+    } catch (err) {
+      toast.error(`Scan failed: ${describeNetworkError(err)}`);
+    } finally {
+      setScanning(false);
+      statusQuery.refetch();
+      statsQuery.refetch();
+      liveEventsQuery.refetch();
+    }
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      toast.error(describeNetworkError(err));
+    } finally {
+      window.location.href = "/login";
+    }
   };
 
   const lockScreen = () => {
