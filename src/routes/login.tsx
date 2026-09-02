@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { describeNetworkError } from "@/lib/net";
+import { supabaseConfigError } from "@/lib/supabase-config";
 import {
   MAX_PIN_ATTEMPTS,
   attemptsLeft,
