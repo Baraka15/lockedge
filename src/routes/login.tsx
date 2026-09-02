@@ -32,21 +32,32 @@ function LoginPage() {
   const [mode, setMode] = useState<"password" | "pin">("password");
   const [pin, setPin] = useState("");
   const [pinLeft, setPinLeft] = useState(MAX_PIN_ATTEMPTS);
+  const configError = supabaseConfigError();
 
   useEffect(() => {
+    if (configError) {
+      setErrorMsg(configError);
+      return;
+    }
     // Quick-unlock is only offered when a real Supabase session already exists
     // on this device; the PIN never grants access on its own.
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session && isPinEnabled() && !isUnlocked()) {
-        setMode("pin");
-        setPinLeft(attemptsLeft());
-      }
-    });
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        if (data.session && isPinEnabled() && !isUnlocked()) {
+          setMode("pin");
+          setPinLeft(attemptsLeft());
+        }
+      })
+      .catch((err) => {
+        // Offline / unreachable backend: keep the password form usable.
+        console.error("[login] getSession failed", err);
+      });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
       if (session && isUnlocked()) navigate({ to: "/dashboard", replace: true });
     });
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigate, configError]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
