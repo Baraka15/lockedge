@@ -164,6 +164,15 @@ function Dashboard() {
       </header>
 
       <main className="mx-auto max-w-6xl px-4 py-6">
+        {connectionError && (
+          <div
+            role="alert"
+            className="mb-4 flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+          >
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>{connectionError} Live figures below may be out of date.</span>
+          </div>
+        )}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
           <StatTile
             label="Engine"
