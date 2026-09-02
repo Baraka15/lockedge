@@ -43,14 +43,19 @@ export function useLiveArbs() {
     let cancelled = false;
 
     (async () => {
-      const { data } = await supabase
-        .from("arbs")
-        .select("*")
-        .eq("is_acknowledged", false)
-        .gt("expires_at", new Date().toISOString())
-        .order("detected_at", { ascending: false });
-      if (cancelled) return;
-      setArbs((data ?? []).map((r) => fromRow(r as unknown as ArbRow)));
+      try {
+        const { data } = await supabase
+          .from("arbs")
+          .select("*")
+          .eq("is_acknowledged", false)
+          .gt("expires_at", new Date().toISOString())
+          .order("detected_at", { ascending: false });
+        if (cancelled) return;
+        setArbs((data ?? []).map((r) => fromRow(r as unknown as ArbRow)));
+      } catch (err) {
+        // Offline / unreachable backend: keep the UI up, realtime will backfill.
+        console.error("[useLiveArbs] initial load failed", err);
+      }
     })();
 
     const channel = supabase
