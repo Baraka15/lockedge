@@ -1,6 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Activity, Lock, LogOut, RefreshCw, Shield, Zap } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import { Activity, AlertTriangle, Lock, LogOut, RefreshCw, Shield, Zap } from "lucide-react";
+import { describeNetworkError, fetchJson } from "@/lib/net";
 import { Button } from "@/components/ui/button";
 import { ArbCard } from "@/components/ArbCard";
 import { ProfitGapTracker } from "@/components/ProfitGapTracker";
