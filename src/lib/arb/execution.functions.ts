@@ -161,7 +161,7 @@ export const revalidateArb = createServerFn({ method: "POST" })
         detected_at: arb.detected_at,
         verified_at: verifiedAt,
         original_odds: originalLegs,
-        current_odds: legs,
+        current_odds: legs.map((l) => ({ ...l })),
         calculated_stakes: legs.map((l) => ({
           name: l.name,
           bookmaker: l.bookmaker,
