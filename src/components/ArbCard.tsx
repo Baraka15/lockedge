@@ -196,7 +196,9 @@ export function ArbCard({ arb, onAcknowledge }: Props) {
           </thead>
           <tbody className="divide-y divide-border">
             {orderedOutcomes.map((o, i) => {
-              const shaped = camouflageStake({ stake: o.stake, odds: o.odds });
+              const live = legStatus(o.name, o.bookmaker);
+              const effectiveStake = live?.stake ?? o.stake;
+              const shaped = camouflageStake({ stake: effectiveStake, odds: o.odds });
               return (
               <tr key={`${o.name}-${o.bookmaker}`}>
                 <td className="px-3 py-2 capitalize text-foreground">
