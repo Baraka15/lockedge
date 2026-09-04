@@ -1,10 +1,26 @@
-import { Check, Clock, Copy, ExternalLink, TrendingUp } from "lucide-react";
+import {
+  AlertTriangle,
+  Check,
+  Clock,
+  Copy,
+  ExternalLink,
+  Loader2,
+  ShieldCheck,
+  TrendingUp,
+  X,
+} from "lucide-react";
 import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useBookmakerHealth, confidenceScore } from "@/hooks/useBookmakerHealth";
 import { camouflageStake, placementOrder } from "@/lib/arb/account-safety";
 import { matchPageUrl } from "@/lib/arb/bookmaker-links";
+import {
+  recordExecutionOutcome,
+  revalidateArb,
+  type RevalidateResult,
+} from "@/lib/arb/execution.functions";
 import type { ArbOpportunity } from "@/lib/odds/types";
 
 
