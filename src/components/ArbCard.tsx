@@ -189,6 +189,7 @@ export function ArbCard({ arb, onAcknowledge }: Props) {
               <th className="px-3 py-2 text-left font-medium">Outcome</th>
               <th className="px-3 py-2 text-left font-medium">Bookmaker</th>
               <th className="px-3 py-2 text-right font-medium">Odds</th>
+              <th className="px-3 py-2 text-right font-medium">Now</th>
               <th className="px-3 py-2 text-right font-medium">Stake</th>
               <th className="px-3 py-2 text-right font-medium sr-only">Copy</th>
             </tr>
