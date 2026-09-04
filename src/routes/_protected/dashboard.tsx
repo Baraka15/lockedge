@@ -9,6 +9,7 @@ import { ArbCard } from "@/components/ArbCard";
 import { ProfitGapTracker } from "@/components/ProfitGapTracker";
 import { AccountSafetyPanel } from "@/components/AccountSafetyPanel";
 import { PinSettingsCard } from "@/components/PinSettingsCard";
+import { ExecutionLog } from "@/components/ExecutionLog";
 import { useLiveArbs } from "@/hooks/useLiveArbs";
 import { supabase } from "@/integrations/supabase/client";
 import { isPinEnabled, lockNow } from "@/lib/pin-lock";
@@ -211,6 +212,16 @@ function Dashboard() {
           ) : (
             arbs.map((arb) => <ArbCard key={arb.id} arb={arb} onAcknowledge={acknowledgeArb} />)
           )}
+        </section>
+
+        <section className="mt-10">
+          <div className="mb-3 flex items-baseline justify-between">
+            <h2 className="text-base font-semibold text-foreground">Execution log</h2>
+            <span className="text-xs text-muted-foreground">
+              verification records — placement is manual
+            </span>
+          </div>
+          <ExecutionLog />
         </section>
 
         <section className="mt-10">
