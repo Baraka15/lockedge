@@ -288,6 +288,86 @@ export type Database = {
         }
         Relationships: []
       }
+      executions: {
+        Row: {
+          arb_id: string | null
+          calculated_stakes: Json
+          created_at: string
+          created_by: string | null
+          current_arb_percent: number
+          current_edge_pct: number
+          current_odds: Json
+          dedup_key: string | null
+          detected_at: string
+          error_message: string | null
+          event_name: string
+          id: string
+          market_type: string
+          min_edge_pct: number
+          original_arb_percent: number
+          original_odds: Json
+          status: string
+          total_stake: number
+          updated_at: string
+          user_outcome: string | null
+          verified_at: string
+        }
+        Insert: {
+          arb_id?: string | null
+          calculated_stakes?: Json
+          created_at?: string
+          created_by?: string | null
+          current_arb_percent?: number
+          current_edge_pct?: number
+          current_odds?: Json
+          dedup_key?: string | null
+          detected_at: string
+          error_message?: string | null
+          event_name: string
+          id?: string
+          market_type: string
+          min_edge_pct?: number
+          original_arb_percent?: number
+          original_odds?: Json
+          status?: string
+          total_stake?: number
+          updated_at?: string
+          user_outcome?: string | null
+          verified_at?: string
+        }
+        Update: {
+          arb_id?: string | null
+          calculated_stakes?: Json
+          created_at?: string
+          created_by?: string | null
+          current_arb_percent?: number
+          current_edge_pct?: number
+          current_odds?: Json
+          dedup_key?: string | null
+          detected_at?: string
+          error_message?: string | null
+          event_name?: string
+          id?: string
+          market_type?: string
+          min_edge_pct?: number
+          original_arb_percent?: number
+          original_odds?: Json
+          status?: string
+          total_stake?: number
+          updated_at?: string
+          user_outcome?: string | null
+          verified_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "executions_arb_id_fkey"
+            columns: ["arb_id"]
+            isOneToOne: false
+            referencedRelation: "arbs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       live_events: {
         Row: {
           bookmaker_count: number
