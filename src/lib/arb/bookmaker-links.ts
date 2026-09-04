@@ -22,10 +22,8 @@ const BUILDERS: Record<string, Builder> = {
   "1xbet": (q) => `https://1xbet.ug/en/search?query=${encode(q)}`,
   melbet: (q) => `https://melbet.ug/en/search?query=${encode(q)}`,
   bangbet: (q) => `https://www.bangbet.com/search?q=${encode(q)}`,
-  sportybet: (q) => `https://www.sportybet.com/ug/sport/football?query=${encode(q)}`,
-  msport: (q) => `https://www.msport.com/ug/search?keyword=${encode(q)}`,
-  betway: (q) => `https://www.betway.co.ug/search?q=${encode(q)}`,
-  sportpesa: (q) => `https://www.sportpesa.co.ke/search?q=${encode(q)}`,
+  // SportyBet / Msport / SportPesa / Betway are intentionally absent: they are
+  // not usable for a Uganda-based operator, so we never link to them.
 };
 
 /**
