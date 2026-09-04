@@ -71,6 +71,68 @@ export function ArbCard({ arb, onAcknowledge }: Props) {
     toast.success(`Copied ${label} stake: ${value.toFixed(2)}`);
   };
 
+  // ---- Execution assistant (verification only, never places a bet) ----
+  const verify = useServerFn(revalidateArb);
+  const recordOutcome = useServerFn(recordExecutionOutcome);
+  const [verifying, setVerifying] = useState(false);
+  const [result, setResult] = useState<RevalidateResult | null>(null);
+  const [blockMsg, setBlockMsg] = useState<string | null>(null);
+
+  const legStatus = (name: string, bookmaker: string) =>
+    result?.legs.find((l) => l.name === name && l.bookmaker === bookmaker);
+
+  const handlePlaceBet = async () => {
+    setVerifying(true);
+    setBlockMsg(null);
+    try {
+      const res = await verify({ data: { arbId: arb.id } });
+      setResult(res);
+      if (!res.ok) {
+        setBlockMsg(res.message ?? "ARB INVALID — ODDS CHANGED.");
+        toast.error(res.message ?? "ARB INVALID — ODDS CHANGED.");
+        return;
+      }
+      // Odds re-checked and edge still above the configured minimum: open the
+      // official match pages so the operator selects and stakes by hand.
+      let opened = 0;
+      for (const l of res.legs) {
+        const url = matchPageUrl(l.bookmaker, arb.eventName);
+        if (url) {
+          window.open(url, "_blank", "noopener,noreferrer");
+          opened += 1;
+        }
+      }
+      toast.success(
+        opened
+          ? `Verified — edge ${res.currentEdgePct.toFixed(2)}%. Opened ${opened} match page${opened === 1 ? "" : "s"} for manual placement.`
+          : `Verified — edge ${res.currentEdgePct.toFixed(2)}%. No public match link for these books.`,
+      );
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Verification failed";
+      setBlockMsg(msg);
+      toast.error(msg);
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const finish = async (outcome: "accepted" | "rejected" | "aborted") => {
+    const id = result?.executionId;
+    if (id) {
+      try {
+        await recordOutcome({ data: { executionId: id, outcome } });
+      } catch (err) {
+        console.error("recordExecutionOutcome failed", err);
+      }
+    }
+    setResult(null);
+    setBlockMsg(null);
+    if (outcome === "accepted") onAcknowledge(arb.id);
+    else if (outcome === "aborted") toast.info("Workflow aborted.");
+  };
+
+
+
 
   const stripeCls = tier === "red"
     ? "bg-rose-500 animate-pulse"
