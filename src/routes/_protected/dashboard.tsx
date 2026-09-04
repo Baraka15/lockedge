@@ -9,6 +9,7 @@ import { ArbCard } from "@/components/ArbCard";
 import { ProfitGapTracker } from "@/components/ProfitGapTracker";
 import { AccountSafetyPanel } from "@/components/AccountSafetyPanel";
 import { PinSettingsCard } from "@/components/PinSettingsCard";
+import { ExecutionLog } from "@/components/ExecutionLog";
 import { useLiveArbs } from "@/hooks/useLiveArbs";
 import { supabase } from "@/integrations/supabase/client";
 import { isPinEnabled, lockNow } from "@/lib/pin-lock";
