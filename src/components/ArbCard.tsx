@@ -225,6 +225,24 @@ export function ArbCard({ arb, onAcknowledge }: Props) {
                 <td className="px-3 py-2 text-right font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">
                   {o.odds.toFixed(2)}
                 </td>
+                <td className="px-3 py-2 text-right text-xs tabular-nums">
+                  {!live ? (
+                    <span className="text-muted-foreground">—</span>
+                  ) : live.status === "missing" ? (
+                    <span className="font-semibold text-rose-500">gone</span>
+                  ) : (
+                    <span
+                      className={
+                        live.status === "drifted"
+                          ? "font-semibold text-amber-500"
+                          : "font-semibold text-emerald-500"
+                      }
+                      title={`odds ${live.status}`}
+                    >
+                      {live.currentOdds?.toFixed(2)}
+                    </span>
+                  )}
+                </td>
                 <td className="px-3 py-2 text-right font-semibold tabular-nums text-foreground">
                   {shaped.camouflaged.toFixed(2)}
                   <span className="ml-1 text-[10px] font-normal text-muted-foreground">
