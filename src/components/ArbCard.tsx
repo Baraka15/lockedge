@@ -267,7 +267,33 @@ export function ArbCard({ arb, onAcknowledge }: Props) {
         </table>
       </div>
 
-      <div className="mt-4 flex items-center justify-between gap-3">
+      {blockMsg && (
+        <div className="mt-3 flex items-center gap-2 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm font-semibold text-destructive">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          <span>{blockMsg}</span>
+          {result?.legs.length ? (
+            <span className="ml-auto text-xs font-normal">
+              edge {result.currentEdgePct.toFixed(2)}% / min {result.minEdgePct.toFixed(2)}%
+            </span>
+          ) : null}
+        </div>
+      )}
+
+      {result?.ok && (
+        <div className="mt-3 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-700 dark:text-emerald-300">
+          <span className="inline-flex items-center gap-1 font-semibold">
+            <ShieldCheck className="h-3.5 w-3.5" /> Odds re-verified
+          </span>{" "}
+          edge {result.currentEdgePct.toFixed(2)}% • stakes recalculated • total{" "}
+          {result.totalStake.toFixed(2)}
+          {result.snapshotAgeSeconds !== null && <> • data {result.snapshotAgeSeconds}s old</>}
+          <div className="mt-1 font-normal text-emerald-700/80 dark:text-emerald-300/80">
+            Match pages opened — choose the selection and type the stake yourself.
+          </div>
+        </div>
+      )}
+
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
         <div className="text-xs text-muted-foreground tabular-nums">
           Total stake <span className="font-semibold text-foreground">{arb.requiredTotalStake.toFixed(2)}</span>
           {" • "}
@@ -283,12 +309,45 @@ export function ArbCard({ arb, onAcknowledge }: Props) {
             camouflaged stakes
           </span>
         </div>
-        <div className="flex gap-2">
-          <Button size="sm" onClick={() => onAcknowledge(arb.id)}>
-            <Check className="h-4 w-4" />
-            Placed
+        <div className="flex flex-wrap gap-2">
+          <Button
+            size="sm"
+            onClick={handlePlaceBet}
+            disabled={verifying}
+            className="bg-emerald-600 font-semibold text-white hover:bg-emerald-700"
+          >
+            {verifying ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <ShieldCheck className="h-4 w-4" />
+            )}
+            {verifying ? "Verifying odds..." : "PLACE BET"}
           </Button>
+          {(result || blockMsg) && (
+            <Button size="sm" variant="outline" onClick={() => finish("aborted")}>
+              <X className="h-4 w-4" />
+              ABORT
+            </Button>
+          )}
+          {result?.ok && (
+            <>
+              <Button size="sm" variant="secondary" onClick={() => finish("accepted")}>
+                <Check className="h-4 w-4" />
+                Bets accepted
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => finish("rejected")}>
+                Rejected by book
+              </Button>
+            </>
+          )}
+          {!result && !blockMsg && (
+            <Button size="sm" variant="outline" onClick={() => onAcknowledge(arb.id)}>
+              Dismiss
+            </Button>
+          )}
         </div>
+
+
 
       </div>
     </div>
