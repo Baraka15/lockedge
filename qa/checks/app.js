@@ -58,11 +58,6 @@ async function main() {
       };
     });
 
-    const placeBtn = await page.$x
-      ? (await page.$$("button")).find(async () => false)
-      : null;
-    void placeBtn;
-
     const placeHandle = (
       await page.$$eval("button", (btns) =>
         btns.map((b, i) => ({ i, text: (b.textContent || "").trim() })),
