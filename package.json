@@ -9,7 +9,10 @@
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "qa": "bun run qa:links && bun run qa:app",
+    "qa:app": "bun qa/checks/app.js",
+    "qa:links": "bun qa/checks/links.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
