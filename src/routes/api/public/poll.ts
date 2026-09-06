@@ -2,15 +2,30 @@ import { createFileRoute } from "@tanstack/react-router";
 import { runPollCycle } from "@/lib/engine.server";
 
 /**
- * Poll endpoint hit by pg_cron every minute. Each invocation runs several
- * scan cycles spaced by POLL_INTERVAL_MS so the dashboard sees fresh
- * opportunities at sub-minute resolution.
+ * Poll endpoint hit by a user-operated scheduler (pg_cron via pg_net, a
+ * Supabase scheduled Edge Function, or any external cron) every minute.
+ * Each invocation runs several scan cycles spaced by POLL_INTERVAL_MS so
+ * the dashboard sees fresh opportunities at sub-minute resolution.
+ *
+ * When POLL_SECRET is set, callers must send `Authorization: Bearer <secret>`.
+ * Leaving it unset keeps the endpoint open (dev / initial setup only).
  */
+function unauthorized(request: Request): Response | null {
+  const secret = process.env.POLL_SECRET;
+  if (!secret) return null;
+  const header = request.headers.get("authorization") ?? "";
+  if (header === `Bearer ${secret}`) return null;
+  return Response.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+}
+
 export const Route = createFileRoute("/api/public/poll")({
   server: {
     handlers: {
-      POST: async () => {
+      POST: async ({ request }) => {
+        const denied = unauthorized(request);
+        if (denied) return denied;
         const intervalMs = Number(process.env.POLL_INTERVAL_MS ?? 2000);
+
         const maxRuntimeMs = 50_000; // stay under the 60s cron window
         const started = Date.now();
         const runs: Awaited<ReturnType<typeof runPollCycle>>[] = [];
@@ -32,11 +47,14 @@ export const Route = createFileRoute("/api/public/poll")({
           totalDurationMs: Date.now() - started,
         });
       },
-      GET: async () => {
+      GET: async ({ request }) => {
+        const denied = unauthorized(request);
+        if (denied) return denied;
         // Allow manual triggering / health probe via GET
         const result = await runPollCycle();
         return Response.json({ ok: true, ...result });
       },
+
     },
   },
 });
