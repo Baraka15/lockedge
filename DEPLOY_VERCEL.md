@@ -1,5 +1,8 @@
 # Deploying to Vercel with your own Supabase
 
+> Render is the recommended external target for this app — see `DEPLOY_RENDER.md`.
+> Keep this guide as the alternative if you prefer Vercel.
+
 This guide describes a clean, self-owned production path: the web app on Vercel,
 the database/auth on **your** Supabase project, and the recurring odds scan on a
 scheduler you control. No credentials belong in this file or anywhere in the repo.
