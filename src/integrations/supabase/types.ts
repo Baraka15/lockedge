@@ -586,6 +586,45 @@ export type Database = {
           },
         ]
       }
+      user_alert_settings: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          last_error: string | null
+          last_sent_at: string | null
+          min_edge_pct: number
+          setup_completed_at: string | null
+          telegram_bot_token: string | null
+          telegram_chat_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          last_error?: string | null
+          last_sent_at?: string | null
+          min_edge_pct?: number
+          setup_completed_at?: string | null
+          telegram_bot_token?: string | null
+          telegram_chat_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          last_error?: string | null
+          last_sent_at?: string | null
+          min_edge_pct?: number
+          setup_completed_at?: string | null
+          telegram_bot_token?: string | null
+          telegram_chat_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string

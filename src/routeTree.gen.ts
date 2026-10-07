@@ -19,6 +19,7 @@ import { Route as ApiSettlementRouteImport } from './routes/api/settlement'
 import { Route as ApiOddsHealthRouteImport } from './routes/api/odds-health'
 import { Route as ApiLiveEventsRouteImport } from './routes/api/live-events'
 import { Route as ApiEngineStatusRouteImport } from './routes/api/engine-status'
+import { Route as ProtectedSetupRouteImport } from './routes/_protected/setup'
 import { Route as ProtectedDashboardRouteImport } from './routes/_protected/dashboard'
 import { Route as ProtectedAgentRouteImport } from './routes/_protected/agent'
 import { Route as ApiPublicPollRouteImport } from './routes/api/public/poll'
@@ -74,6 +75,11 @@ const ApiEngineStatusRoute = ApiEngineStatusRouteImport.update({
   path: '/api/engine-status',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProtectedSetupRoute = ProtectedSetupRouteImport.update({
+  id: '/setup',
+  path: '/setup',
+  getParentRoute: () => ProtectedRoute,
+} as any)
 const ProtectedDashboardRoute = ProtectedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -108,6 +114,7 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/agent': typeof ProtectedAgentRoute
   '/dashboard': typeof ProtectedDashboardRoute
+  '/setup': typeof ProtectedSetupRoute
   '/api/engine-status': typeof ApiEngineStatusRoute
   '/api/live-events': typeof ApiLiveEventsRoute
   '/api/odds-health': typeof ApiOddsHealthRoute
@@ -124,6 +131,7 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/agent': typeof ProtectedAgentRoute
   '/dashboard': typeof ProtectedDashboardRoute
+  '/setup': typeof ProtectedSetupRoute
   '/api/engine-status': typeof ApiEngineStatusRoute
   '/api/live-events': typeof ApiLiveEventsRoute
   '/api/odds-health': typeof ApiOddsHealthRoute
@@ -142,6 +150,7 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/_protected/agent': typeof ProtectedAgentRoute
   '/_protected/dashboard': typeof ProtectedDashboardRoute
+  '/_protected/setup': typeof ProtectedSetupRoute
   '/api/engine-status': typeof ApiEngineStatusRoute
   '/api/live-events': typeof ApiLiveEventsRoute
   '/api/odds-health': typeof ApiOddsHealthRoute
@@ -160,6 +169,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/agent'
     | '/dashboard'
+    | '/setup'
     | '/api/engine-status'
     | '/api/live-events'
     | '/api/odds-health'
@@ -176,6 +186,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/agent'
     | '/dashboard'
+    | '/setup'
     | '/api/engine-status'
     | '/api/live-events'
     | '/api/odds-health'
@@ -193,6 +204,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/_protected/agent'
     | '/_protected/dashboard'
+    | '/_protected/setup'
     | '/api/engine-status'
     | '/api/live-events'
     | '/api/odds-health'
@@ -291,6 +303,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiEngineStatusRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_protected/setup': {
+      id: '/_protected/setup'
+      path: '/setup'
+      fullPath: '/setup'
+      preLoaderRoute: typeof ProtectedSetupRouteImport
+      parentRoute: typeof ProtectedRoute
+    }
     '/_protected/dashboard': {
       id: '/_protected/dashboard'
       path: '/dashboard'
@@ -332,11 +351,13 @@ declare module '@tanstack/react-router' {
 interface ProtectedRouteChildren {
   ProtectedAgentRoute: typeof ProtectedAgentRoute
   ProtectedDashboardRoute: typeof ProtectedDashboardRoute
+  ProtectedSetupRoute: typeof ProtectedSetupRoute
 }
 
 const ProtectedRouteChildren: ProtectedRouteChildren = {
   ProtectedAgentRoute: ProtectedAgentRoute,
   ProtectedDashboardRoute: ProtectedDashboardRoute,
+  ProtectedSetupRoute: ProtectedSetupRoute,
 }
 
 const ProtectedRouteWithChildren = ProtectedRoute._addFileChildren(

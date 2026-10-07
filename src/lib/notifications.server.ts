@@ -59,3 +59,41 @@ export async function notify({ kind, title, body, payload = {}, chatId }: Notify
     console.error("[notify] audit log failed", e);
   }
 }
+
+/**
+ * Fan a sure-bet alert out to every user who connected their own Telegram bot.
+ * Each user's bot token is used only to message that user's chat.
+ */
+export async function notifySubscribers(edgePct: number, title: string, body: string) {
+  const { data, error } = await (supabaseAdmin as any)
+    .from("user_alert_settings")
+    .select("user_id, telegram_bot_token, telegram_chat_id, min_edge_pct")
+    .eq("enabled", true)
+    .not("telegram_bot_token", "is", null)
+    .not("telegram_chat_id", "is", null);
+  if (error) { console.error("[notify] subscribers load failed", error); return; }
+  const text = `*${title}*\n${body}`.trim();
+  await Promise.allSettled(
+    (data ?? [])
+      .filter((s: any) => edgePct >= Number(s.min_edge_pct ?? 0))
+      .map(async (s: any) => {
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), 8000);
+        try {
+          const res = await fetch(`https://api.telegram.org/bot${s.telegram_bot_token}/sendMessage`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ chat_id: s.telegram_chat_id, text, parse_mode: "Markdown", disable_web_page_preview: true }),
+            signal: ctrl.signal,
+          });
+          const ok = res.ok;
+          await (supabaseAdmin as any).from("user_alert_settings").update({
+            last_sent_at: ok ? new Date().toISOString() : undefined,
+            last_error: ok ? null : `HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`,
+          }).eq("user_id", s.user_id);
+        } catch (e) {
+          console.error("[notify] subscriber send failed", s.user_id, e);
+        } finally { clearTimeout(t); }
+      }),
+  );
+}

@@ -1,6 +1,6 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Activity, AlertTriangle, Lock, LogOut, RefreshCw, Shield, Zap } from "lucide-react";
 import { describeNetworkError, fetchJson } from "@/lib/net";
@@ -61,6 +61,19 @@ interface SettlementArb {
 function Dashboard() {
   const { arbs, acknowledgeArb } = useLiveArbs();
   const [scanning, setScanning] = useState(false);
+  const navigate = useNavigate();
+
+  // First sign-in: send the user to the Telegram alert setup.
+  useEffect(() => {
+    (supabase as unknown as { from: (t: string) => any })
+      .from("user_alert_settings").select("user_id").maybeSingle()
+      .then(({ data, error }: any) => {
+        if (!error && !data && !sessionStorage.getItem("setup_skipped")) {
+          sessionStorage.setItem("setup_skipped", "1");
+          navigate({ to: "/setup" });
+        }
+      });
+  }, [navigate]);
 
   const statusQuery = useQuery<EngineStatus>({
     queryKey: ["engine-status"],
@@ -140,6 +153,9 @@ function Dashboard() {
             <h1 className="text-lg font-semibold text-foreground">Sure Bets</h1>
           </div>
           <div className="flex items-center gap-2">
+            <Button asChild variant="outline" size="sm">
+              <Link to="/setup">Telegram alerts</Link>
+            </Button>
             <Button asChild variant="outline" size="sm">
               <Link to="/agent">
                 <Shield className="h-4 w-4" />
