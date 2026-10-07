@@ -61,6 +61,19 @@ interface SettlementArb {
 function Dashboard() {
   const { arbs, acknowledgeArb } = useLiveArbs();
   const [scanning, setScanning] = useState(false);
+  const navigate = useNavigate();
+
+  // First sign-in: send the user to the Telegram alert setup.
+  useEffect(() => {
+    (supabase as unknown as { from: (t: string) => any })
+      .from("user_alert_settings").select("user_id").maybeSingle()
+      .then(({ data, error }: any) => {
+        if (!error && !data && !sessionStorage.getItem("setup_skipped")) {
+          sessionStorage.setItem("setup_skipped", "1");
+          navigate({ to: "/setup" });
+        }
+      });
+  }, [navigate]);
 
   const statusQuery = useQuery<EngineStatus>({
     queryKey: ["engine-status"],
