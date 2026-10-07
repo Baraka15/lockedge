@@ -9,31 +9,30 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SignupRouteImport } from './routes/signup'
-import { Route as ResetPasswordRouteImport } from './routes/reset-password'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as ProtectedRouteImport } from './routes/_protected'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ApiStatsRouteImport } from './routes/api/stats'
-import { Route as ApiSettlementRouteImport } from './routes/api/settlement'
-import { Route as ApiOddsHealthRouteImport } from './routes/api/odds-health'
-import { Route as ApiLiveEventsRouteImport } from './routes/api/live-events'
-import { Route as ApiEngineStatusRouteImport } from './routes/api/engine-status'
-import { Route as ProtectedSetupRouteImport } from './routes/_protected/setup'
-import { Route as ProtectedDashboardRouteImport } from './routes/_protected/dashboard'
+import { Route as ProtectedRouteImport } from './routes/_protected'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as SignupRouteImport } from './routes/signup'
 import { Route as ProtectedAgentRouteImport } from './routes/_protected/agent'
+import { Route as ProtectedDashboardRouteImport } from './routes/_protected/dashboard'
+import { Route as ProtectedSetupRouteImport } from './routes/_protected/setup'
+import { Route as ApiEngineStatusRouteImport } from './routes/api/engine-status'
+import { Route as ApiLiveEventsRouteImport } from './routes/api/live-events'
+import { Route as ApiOddsHealthRouteImport } from './routes/api/odds-health'
+import { Route as ApiSettlementRouteImport } from './routes/api/settlement'
+import { Route as ApiStatsRouteImport } from './routes/api/stats'
 import { Route as ApiPublicPollRouteImport } from './routes/api/public/poll'
-import { Route as ApiPublicHooksSettleArbRouteImport } from './routes/api/public/hooks/settle-arb'
 import { Route as ApiPublicHooksNotifyTestRouteImport } from './routes/api/public/hooks/notify-test'
+import { Route as ApiPublicHooksSettleArbRouteImport } from './routes/api/public/hooks/settle-arb'
 
-const SignupRoute = SignupRouteImport.update({
-  id: '/signup',
-  path: '/signup',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ResetPasswordRoute = ResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
+const ProtectedRoute = ProtectedRouteImport.update({
+  id: '/_protected',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -41,43 +40,19 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ProtectedRoute = ProtectedRouteImport.update({
-  id: '/_protected',
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiStatsRoute = ApiStatsRouteImport.update({
-  id: '/api/stats',
-  path: '/api/stats',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiSettlementRoute = ApiSettlementRouteImport.update({
-  id: '/api/settlement',
-  path: '/api/settlement',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiOddsHealthRoute = ApiOddsHealthRouteImport.update({
-  id: '/api/odds-health',
-  path: '/api/odds-health',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiLiveEventsRoute = ApiLiveEventsRouteImport.update({
-  id: '/api/live-events',
-  path: '/api/live-events',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiEngineStatusRoute = ApiEngineStatusRouteImport.update({
-  id: '/api/engine-status',
-  path: '/api/engine-status',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProtectedSetupRoute = ProtectedSetupRouteImport.update({
-  id: '/setup',
-  path: '/setup',
+const ProtectedAgentRoute = ProtectedAgentRouteImport.update({
+  id: '/agent',
+  path: '/agent',
   getParentRoute: () => ProtectedRoute,
 } as any)
 const ProtectedDashboardRoute = ProtectedDashboardRouteImport.update({
@@ -85,19 +60,39 @@ const ProtectedDashboardRoute = ProtectedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => ProtectedRoute,
 } as any)
-const ProtectedAgentRoute = ProtectedAgentRouteImport.update({
-  id: '/agent',
-  path: '/agent',
+const ProtectedSetupRoute = ProtectedSetupRouteImport.update({
+  id: '/setup',
+  path: '/setup',
   getParentRoute: () => ProtectedRoute,
+} as any)
+const ApiEngineStatusRoute = ApiEngineStatusRouteImport.update({
+  id: '/api/engine-status',
+  path: '/api/engine-status',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiLiveEventsRoute = ApiLiveEventsRouteImport.update({
+  id: '/api/live-events',
+  path: '/api/live-events',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiOddsHealthRoute = ApiOddsHealthRouteImport.update({
+  id: '/api/odds-health',
+  path: '/api/odds-health',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSettlementRoute = ApiSettlementRouteImport.update({
+  id: '/api/settlement',
+  path: '/api/settlement',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiStatsRoute = ApiStatsRouteImport.update({
+  id: '/api/stats',
+  path: '/api/stats',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicPollRoute = ApiPublicPollRouteImport.update({
   id: '/api/public/poll',
   path: '/api/public/poll',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicHooksSettleArbRoute = ApiPublicHooksSettleArbRouteImport.update({
-  id: '/api/public/hooks/settle-arb',
-  path: '/api/public/hooks/settle-arb',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicHooksNotifyTestRoute =
@@ -106,6 +101,11 @@ const ApiPublicHooksNotifyTestRoute =
     path: '/api/public/hooks/notify-test',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksSettleArbRoute = ApiPublicHooksSettleArbRouteImport.update({
+  id: '/api/public/hooks/settle-arb',
+  path: '/api/public/hooks/settle-arb',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -233,25 +233,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/signup': {
-      id: '/signup'
-      path: '/signup'
-      fullPath: '/signup'
-      preLoaderRoute: typeof SignupRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/reset-password': {
-      id: '/reset-password'
-      path: '/reset-password'
-      fullPath: '/reset-password'
-      preLoaderRoute: typeof ResetPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_protected': {
@@ -261,53 +247,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/stats': {
-      id: '/api/stats'
-      path: '/api/stats'
-      fullPath: '/api/stats'
-      preLoaderRoute: typeof ApiStatsRouteImport
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/settlement': {
-      id: '/api/settlement'
-      path: '/api/settlement'
-      fullPath: '/api/settlement'
-      preLoaderRoute: typeof ApiSettlementRouteImport
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/odds-health': {
-      id: '/api/odds-health'
-      path: '/api/odds-health'
-      fullPath: '/api/odds-health'
-      preLoaderRoute: typeof ApiOddsHealthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/live-events': {
-      id: '/api/live-events'
-      path: '/api/live-events'
-      fullPath: '/api/live-events'
-      preLoaderRoute: typeof ApiLiveEventsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/engine-status': {
-      id: '/api/engine-status'
-      path: '/api/engine-status'
-      fullPath: '/api/engine-status'
-      preLoaderRoute: typeof ApiEngineStatusRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_protected/setup': {
-      id: '/_protected/setup'
-      path: '/setup'
-      fullPath: '/setup'
-      preLoaderRoute: typeof ProtectedSetupRouteImport
+    '/_protected/agent': {
+      id: '/_protected/agent'
+      path: '/agent'
+      fullPath: '/agent'
+      preLoaderRoute: typeof ProtectedAgentRouteImport
       parentRoute: typeof ProtectedRoute
     }
     '/_protected/dashboard': {
@@ -317,12 +282,47 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedDashboardRouteImport
       parentRoute: typeof ProtectedRoute
     }
-    '/_protected/agent': {
-      id: '/_protected/agent'
-      path: '/agent'
-      fullPath: '/agent'
-      preLoaderRoute: typeof ProtectedAgentRouteImport
+    '/_protected/setup': {
+      id: '/_protected/setup'
+      path: '/setup'
+      fullPath: '/setup'
+      preLoaderRoute: typeof ProtectedSetupRouteImport
       parentRoute: typeof ProtectedRoute
+    }
+    '/api/engine-status': {
+      id: '/api/engine-status'
+      path: '/api/engine-status'
+      fullPath: '/api/engine-status'
+      preLoaderRoute: typeof ApiEngineStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/live-events': {
+      id: '/api/live-events'
+      path: '/api/live-events'
+      fullPath: '/api/live-events'
+      preLoaderRoute: typeof ApiLiveEventsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/odds-health': {
+      id: '/api/odds-health'
+      path: '/api/odds-health'
+      fullPath: '/api/odds-health'
+      preLoaderRoute: typeof ApiOddsHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/settlement': {
+      id: '/api/settlement'
+      path: '/api/settlement'
+      fullPath: '/api/settlement'
+      preLoaderRoute: typeof ApiSettlementRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/stats': {
+      id: '/api/stats'
+      path: '/api/stats'
+      fullPath: '/api/stats'
+      preLoaderRoute: typeof ApiStatsRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/public/poll': {
       id: '/api/public/poll'
@@ -331,18 +331,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPollRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/hooks/settle-arb': {
-      id: '/api/public/hooks/settle-arb'
-      path: '/api/public/hooks/settle-arb'
-      fullPath: '/api/public/hooks/settle-arb'
-      preLoaderRoute: typeof ApiPublicHooksSettleArbRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/public/hooks/notify-test': {
       id: '/api/public/hooks/notify-test'
       path: '/api/public/hooks/notify-test'
       fullPath: '/api/public/hooks/notify-test'
       preLoaderRoute: typeof ApiPublicHooksNotifyTestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/settle-arb': {
+      id: '/api/public/hooks/settle-arb'
+      path: '/api/public/hooks/settle-arb'
+      fullPath: '/api/public/hooks/settle-arb'
+      preLoaderRoute: typeof ApiPublicHooksSettleArbRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
