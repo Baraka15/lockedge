@@ -5,7 +5,7 @@ import { normalizeOdds } from "./odds/normalizer";
 import { generateMockOdds } from "./odds/providers/mock-provider.server";
 import { fetchTheOddsApi } from "./odds/providers/theoddsapi-provider.server";
 import { fetchAllAfricanOddsAsRaw } from "./odds/scrapers";
-import { notify } from "./notifications.server";
+import { notify, notifySubscribers } from "./notifications.server";
 import { matchPageUrl } from "./arb/bookmaker-links";
 
 import type { MasterFixture, RawOdds } from "./odds/types";
@@ -273,10 +273,8 @@ export async function runPollCycle(): Promise<PollResult> {
               return url ? `${line}\n   [Open ${o.bookmaker} match page](${url})` : line;
             });
 
-            await notify({
-              kind: "arb_detected",
-              title: `🎯 SURE BET +${edgePct.toFixed(2)}%`,
-              body: [
+            const alertTitle = `🎯 SURE BET +${edgePct.toFixed(2)}%`;
+            const alertBody = [
                 `${a.eventName}`,
                 `Market: ${a.marketType}`,
                 `Arb: ${a.totalArbPercent.toFixed(2)}% (edge +${edgePct.toFixed(2)}%)`,
@@ -285,7 +283,12 @@ export async function runPollCycle(): Promise<PollResult> {
                 ...legs,
                 "",
                 "_Place both legs manually — links open the match page, not a prefilled slip._",
-              ].join("\n"),
+              ].join("\n");
+            await notifySubscribers(edgePct, alertTitle, alertBody);
+            await notify({
+              kind: "arb_detected",
+              title: alertTitle,
+              body: alertBody,
               payload: { dedupKey: a.dedupKey, edgePct, outcomes: a.outcomes },
             });
           }
