@@ -154,6 +154,9 @@ function Dashboard() {
           </div>
           <div className="flex items-center gap-2">
             <Button asChild variant="outline" size="sm">
+              <Link to="/setup">Telegram alerts</Link>
+            </Button>
+            <Button asChild variant="outline" size="sm">
               <Link to="/agent">
                 <Shield className="h-4 w-4" />
                 Agent
