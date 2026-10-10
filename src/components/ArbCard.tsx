@@ -9,7 +9,8 @@ import {
   TrendingUp,
   X,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { countdownLabel, secondsUntil } from "@/lib/arb/live-metrics";
 import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -27,23 +28,11 @@ import type { ArbOpportunity } from "@/lib/odds/types";
 interface Props {
   arb: ArbOpportunity;
   onAcknowledge: (id: string) => void;
+  now?: number;
 }
 
-function useCountdown(expiresAt: string): number {
-  const [remaining, setRemaining] = useState(() =>
-    Math.max(0, Math.ceil((new Date(expiresAt).getTime() - Date.now()) / 1000)),
-  );
-  useEffect(() => {
-    const i = setInterval(() => {
-      setRemaining(Math.max(0, Math.ceil((new Date(expiresAt).getTime() - Date.now()) / 1000)));
-    }, 250);
-    return () => clearInterval(i);
-  }, [expiresAt]);
-  return remaining;
-}
-
-export function ArbCard({ arb, onAcknowledge }: Props) {
-  const remaining = useCountdown(arb.expiresAt);
+export function ArbCard({ arb, onAcknowledge, now = Date.now() }: Props) {
+  const remaining = secondsUntil(arb.expiresAt, now);
   const profit = (arb.requiredTotalStake / arb.totalArbPercent) * 100 - arb.requiredTotalStake;
   const profitPct = ((100 - arb.totalArbPercent) / arb.totalArbPercent) * 100;
   const health = useBookmakerHealth();
@@ -135,16 +124,16 @@ export function ArbCard({ arb, onAcknowledge }: Props) {
 
 
   const stripeCls = tier === "red"
-    ? "bg-rose-500 animate-pulse"
-    : tier === "yellow" ? "bg-amber-500" : "bg-emerald-500";
+    ? "bg-destructive"
+    : tier === "yellow" ? "bg-warning" : "bg-success";
 
   return (
-    <div className="group relative overflow-hidden rounded-xl border border-border bg-card p-5 shadow-sm transition-all hover:shadow-md">
+    <div className="group relative overflow-hidden rounded-lg border border-border bg-card p-4 shadow-sm sm:p-5">
       <div aria-hidden className={`absolute inset-x-0 top-0 h-1 transition-colors ${stripeCls}`} />
 
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <h3 className="truncate text-lg font-semibold text-foreground">{arb.eventName}</h3>
+          <h3 className="break-words text-lg font-semibold text-foreground">{arb.eventName}</h3>
           <p className="mt-0.5 flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
             <span>{arb.marketType}</span>
             <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
@@ -176,13 +165,14 @@ export function ArbCard({ arb, onAcknowledge }: Props) {
                 : "bg-muted text-muted-foreground"
             }`}
           >
-            <Clock className="h-3.5 w-3.5" />
-            {remaining}s
+            <Clock className="h-4 w-4" />
+            <span role="timer" aria-label={`Quote expires in ${remaining} seconds`} className="min-w-14 text-right text-xl">{countdownLabel(remaining)}</span>
           </div>
+          <span className="text-[10px] text-muted-foreground">Quote expiry</span>
         </div>
       </div>
 
-      <div className="mt-4 overflow-hidden rounded-lg border border-border">
+      <div className="mt-4 overflow-x-auto rounded-lg border border-border">
         <table className="w-full text-sm">
           <thead className="bg-muted/50 text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
@@ -302,7 +292,7 @@ export function ArbCard({ arb, onAcknowledge }: Props) {
               −{arb.bookMarginPct.toFixed(2)}% expected
             </span></>
           ) : (
-            <>Guaranteed profit <span className="font-semibold text-emerald-600 dark:text-emerald-400">+{profit.toFixed(2)}</span></>
+             <>Potential profit <span className="font-semibold text-success">+{profit.toFixed(2)}</span></>
           )}
           {" • "}
           <span title="Stakes are rounded to human-looking amounts to protect the account">
@@ -313,8 +303,8 @@ export function ArbCard({ arb, onAcknowledge }: Props) {
           <Button
             size="sm"
             onClick={handlePlaceBet}
-            disabled={verifying}
-            className="bg-emerald-600 font-semibold text-white hover:bg-emerald-700"
+            disabled={verifying || remaining === 0}
+            className="bg-success font-semibold text-success-foreground hover:bg-success/90"
           >
             {verifying ? (
               <Loader2 className="h-4 w-4 animate-spin" />

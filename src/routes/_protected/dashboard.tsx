@@ -11,11 +11,20 @@ import { AccountSafetyPanel } from "@/components/AccountSafetyPanel";
 import { PinSettingsCard } from "@/components/PinSettingsCard";
 import { ExecutionLog } from "@/components/ExecutionLog";
 import { useLiveArbs } from "@/hooks/useLiveArbs";
+import { useHourlyMetrics } from "@/hooks/useHourlyMetrics";
+import { countdownLabel, secondsUntil } from "@/lib/arb/live-metrics";
 import { supabase } from "@/integrations/supabase/client";
 import { isPinEnabled, lockNow } from "@/lib/pin-lock";
 
 export const Route = createFileRoute("/_protected/dashboard")({
-  head: () => ({ meta: [{ title: "Live Sure Bets — Dashboard" }] }),
+  head: () => ({ meta: [
+    { title: "LockEdge — Live Arbs & Hourly Profit" },
+    { name: "description", content: "Live arbitrage quote countdowns, rolling potential profit and recorded settlement results for manual betting." },
+    { property: "og:title", content: "LockEdge — Live Arbs & Hourly Profit" },
+    { property: "og:description", content: "Track live arbitrage quotes and distinguish potential returns from recorded profits." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: Dashboard,
 });
 
@@ -24,11 +33,6 @@ interface EngineStatus {
   lastPollAt: string | null;
   arbsDetectedTotal: number;
 }
-interface Stats {
-  arbsDetected: number;
-  totalPotentialProfit: number;
-}
-
 interface LiveEventOutcome {
   name: string;
   bestPrice: number;
@@ -59,7 +63,10 @@ interface SettlementArb {
 }
 
 function Dashboard() {
-  const { arbs, acknowledgeArb } = useLiveArbs();
+  const { arbs, acknowledgeArb, now, error: arbError, isPending: arbsPending, refetch: refreshArbs } = useLiveArbs();
+  const hourly = useHourlyMetrics(now);
+  const sureArbs = arbs.filter((a) => a.tier === "sure");
+  const nextExpiry = sureArbs.length ? Math.min(...sureArbs.map((a) => secondsUntil(a.expiresAt, now))) : null;
   const [scanning, setScanning] = useState(false);
   const navigate = useNavigate();
 
@@ -82,13 +89,6 @@ function Dashboard() {
     retry: 1,
   });
 
-  const statsQuery = useQuery<Stats>({
-    queryKey: ["stats"],
-    queryFn: () => fetchJson<Stats>("/api/stats"),
-    refetchInterval: 15000,
-    retry: 1,
-  });
-
   const liveEventsQuery = useQuery<{ ok: boolean; events: LiveEvent[] }>({
     queryKey: ["live-events"],
     queryFn: () => fetchJson<{ ok: boolean; events: LiveEvent[] }>("/api/live-events"),
@@ -105,7 +105,7 @@ function Dashboard() {
   });
   const settlementArbs = settlementQuery.data?.arbs ?? [];
 
-  const connectionError = [statusQuery.error, statsQuery.error, liveEventsQuery.error, settlementQuery.error]
+  const connectionError = [arbError, hourly.error, statusQuery.error, liveEventsQuery.error, settlementQuery.error]
     .filter(Boolean)
     .map((e) => describeNetworkError(e))[0];
 
@@ -125,7 +125,8 @@ function Dashboard() {
     } finally {
       setScanning(false);
       statusQuery.refetch();
-      statsQuery.refetch();
+      hourly.refetch();
+      refreshArbs();
       liveEventsQuery.refetch();
     }
   };
@@ -146,18 +147,18 @@ function Dashboard() {
   };
 
   const lastPollSeconds = statusQuery.data?.lastPollAt
-    ? Math.round((Date.now() - new Date(statusQuery.data.lastPollAt).getTime()) / 1000)
+    ? Math.max(0, Math.round((now - new Date(statusQuery.data.lastPollAt).getTime()) / 1000))
     : null;
 
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-10 border-b border-border bg-background/80 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-3">
           <div className="flex items-center gap-2">
             <Zap className="h-5 w-5 text-emerald-500" />
             <h1 className="text-lg font-semibold text-foreground">Sure Bets</h1>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Button asChild variant="outline" size="sm">
               <Link to="/setup">Telegram alerts</Link>
             </Button>
@@ -195,7 +196,7 @@ function Dashboard() {
             <span>{connectionError} Live figures below may be out of date.</span>
           </div>
         )}
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <StatTile
             label="Engine"
             value={statusQuery.data?.running ? "Running" : "Idle"}
@@ -207,31 +208,56 @@ function Dashboard() {
             value={lastPollSeconds !== null ? `${lastPollSeconds}s ago` : "—"}
           />
           <StatTile
-            label="Arbs (1h)"
-            value={String(statsQuery.data?.arbsDetected ?? statusQuery.data?.arbsDetectedTotal ?? 0)}
+            label="Unique quotes (1h)"
+            value={hourly.data ? String(hourly.metrics.count) : "—"}
           />
           <StatTile
             label="Potential profit (1h)"
             value={
-              statsQuery.data
-                ? `+${statsQuery.data.totalPotentialProfit.toFixed(2)}`
+              hourly.data
+                ? `+${hourly.metrics.potential.toFixed(2)}`
                 : "—"
             }
             tone="ok"
           />
         </div>
 
+        <section className="mt-6 border-y border-border py-5">
+          <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="text-base font-semibold">Hourly profit</h2>
+            <span className="text-xs text-muted-foreground">{hourly.error ? "Update unavailable" : hourly.dataUpdatedAt ? `Updated ${Math.max(0, Math.floor((now - hourly.dataUpdatedAt) / 1000))}s ago` : "Loading…"}</span>
+          </div>
+          <div className="mb-4 flex flex-wrap gap-x-8 gap-y-2 text-sm">
+            <span>Recorded settlements (1h) <strong className="ml-2 tabular-nums text-success">{hourly.data && hourly.canReadSettlements ? `${hourly.metrics.realised >= 0 ? "+" : ""}${hourly.metrics.realised.toFixed(2)}` : "Not available"}</strong></span>
+            <span className="text-muted-foreground">Latest unique sure-bet quotes · not earnings</span>
+          </div>
+          <div className="grid grid-cols-2 divide-border gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            {hourly.metrics.buckets.map((bucket) => (
+              <div key={bucket.at} className="border-l-2 border-success/40 pl-3">
+                <div className="text-xs text-muted-foreground">{new Date(bucket.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}{bucket.at <= now && now < bucket.at + 3_600_000 ? " · now" : ""}</div>
+                <div className="mt-1 font-semibold tabular-nums text-success">{hourly.data ? `+${bucket.potential.toFixed(2)}` : "—"}</div>
+                <div className="text-[11px] text-muted-foreground">Potential · {bucket.count} quotes</div>
+                <div className="mt-1 text-xs tabular-nums">Settled {hourly.data && hourly.canReadSettlements ? `${bucket.realised >= 0 ? "+" : ""}${bucket.realised.toFixed(2)}` : "—"}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+
         <section className="mt-6 space-y-3">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="text-base font-semibold">Live opportunities <span className="ml-2 text-success">{sureArbs.length}</span></h2>
+            <span className="text-xs tabular-nums text-muted-foreground">{nextExpiry === null ? "No active sure-bet quotes" : `Next quote expiry ${countdownLabel(nextExpiry)}`}</span>
+          </div>
           {arbs.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border bg-card/50 py-16">
               <span className="relative flex h-3 w-3">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
                 <span className="relative inline-flex h-3 w-3 rounded-full bg-emerald-500" />
               </span>
-              <p className="text-sm text-muted-foreground">Scanning for sure bets...</p>
+              <p className="text-sm text-muted-foreground">{arbsPending ? "Loading live quotes…" : arbError ? "Live quotes unavailable. Retrying…" : "No verified sure bets available right now."}</p>
             </div>
           ) : (
-            arbs.map((arb) => <ArbCard key={arb.id} arb={arb} onAcknowledge={acknowledgeArb} />)
+            arbs.map((arb) => <ArbCard key={arb.id} arb={arb} now={now} onAcknowledge={acknowledgeArb} />)
           )}
         </section>
 
