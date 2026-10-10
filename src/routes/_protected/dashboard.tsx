@@ -390,8 +390,8 @@ function LiveEventRow({ ev }: { ev: LiveEvent }) {
     (s, o) => (o.bestPrice > 0 ? s + 1 / o.bestPrice : s),
     0,
   );
-  const hasArb = impliedSum > 0 && impliedSum < 1;
-  const profitPct = hasArb ? (1 - impliedSum) * 100 : 0;
+  const hasArb = ev.outcomes.length >= 2 && ev.bookmaker_count >= 2 && ev.outcomes.every((o) => Number.isFinite(o.bestPrice) && o.bestPrice > 1) && impliedSum >= 0.88 && impliedSum < 1;
+  const profitPct = hasArb ? (1 / impliedSum - 1) * 100 : 0;
   const marginPct = !hasArb && impliedSum > 0 ? (impliedSum - 1) * 100 : 0;
   return (
     <div className="px-4 py-3">
@@ -408,7 +408,7 @@ function LiveEventRow({ ev }: { ev: LiveEvent }) {
         <div className="flex items-center gap-1.5">
           {hasArb ? (
             <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
-              Sure bet +{profitPct.toFixed(2)}%
+              Price edge +{profitPct.toFixed(2)}%
             </span>
           ) : (
             <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
@@ -442,8 +442,7 @@ function LiveEventRow({ ev }: { ev: LiveEvent }) {
       </div>
       {hasArb && (
         <div className="mt-2 text-[11px] text-emerald-600 dark:text-emerald-400">
-          Implied book {(impliedSum * 100).toFixed(2)}% — guaranteed profit if all
-          legs are staked proportionally.
+          Implied book {(impliedSum * 100).toFixed(2)}% · awaiting full arb validation
         </div>
       )}
     </div>

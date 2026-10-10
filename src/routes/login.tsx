@@ -18,7 +18,14 @@ import {
 } from "@/lib/pin-lock";
 
 export const Route = createFileRoute("/login")({
-  head: () => ({ meta: [{ title: "Sign in — Sure Bets" }] }),
+  head: () => ({ meta: [
+    { title: "Sign in — LockEdge" },
+    { name: "description", content: "Sign in securely to your LockEdge live arbitrage feed." },
+    { property: "og:title", content: "Sign in — LockEdge" },
+    { property: "og:description", content: "Access your live arbitrage feed and Telegram alert settings." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: LoginPage,
 });
 
