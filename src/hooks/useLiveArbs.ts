@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { ArbOpportunity } from "@/lib/odds/types";
 
@@ -35,80 +36,57 @@ function fromRow(r: ArbRow): ArbOpportunity {
 }
 
 export function useLiveArbs() {
-  const [arbs, setArbs] = useState<ArbOpportunity[]>([]);
-  const [tick, setTick] = useState(0);
+  const queryClient = useQueryClient();
+  const [now, setNow] = useState(Date.now);
+  const queryKey = ["active-arbs"];
+  const query = useQuery({
+    queryKey,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("arbs").select("*")
+        .eq("is_acknowledged", false).gt("expires_at", new Date().toISOString())
+        .order("detected_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []).map((r) => fromRow(r as unknown as ArbRow));
+    },
+    refetchInterval: 5000,
+    retry: 1,
+  });
 
   // Initial load + realtime subscription
   useEffect(() => {
-    let cancelled = false;
-
-    (async () => {
-      try {
-        const { data } = await supabase
-          .from("arbs")
-          .select("*")
-          .eq("is_acknowledged", false)
-          .gt("expires_at", new Date().toISOString())
-          .order("detected_at", { ascending: false });
-        if (cancelled) return;
-        setArbs((data ?? []).map((r) => fromRow(r as unknown as ArbRow)));
-      } catch (err) {
-        // Offline / unreachable backend: keep the UI up, realtime will backfill.
-        console.error("[useLiveArbs] initial load failed", err);
-      }
-    })();
-
     const channel = supabase
       .channel("arbs-live")
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "arbs" },
-        (payload) => {
-          const row = payload.new as unknown as ArbRow;
-          if (row.is_acknowledged) return;
-          if (new Date(row.expires_at).getTime() <= Date.now()) return;
-          setArbs((prev) =>
-            prev.some((a) => a.id === row.id) ? prev : [fromRow(row), ...prev],
-          );
-        },
+        { event: "*", schema: "public", table: "arbs" },
+        () => { void queryClient.invalidateQueries({ queryKey: ["active-arbs"] }); },
       )
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "arbs" },
-        (payload) => {
-          const row = payload.new as unknown as ArbRow;
-          setArbs((prev) =>
-            row.is_acknowledged
-              ? prev.filter((a) => a.id !== row.id)
-              : prev.map((a) => (a.id === row.id ? fromRow(row) : a)),
-          );
-        },
-      )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") void queryClient.invalidateQueries({ queryKey: ["active-arbs"] });
+      });
 
     return () => {
-      cancelled = true;
-      supabase.removeChannel(channel);
+      void supabase.removeChannel(channel);
     };
-  }, []);
+  }, [queryClient]);
 
   // 1Hz tick for countdown rendering + client-side expiry sweep
   useEffect(() => {
     const t = setInterval(() => {
-      setTick((n) => n + 1);
-      setArbs((prev) => prev.filter((a) => new Date(a.expiresAt).getTime() > Date.now()));
+      setNow(Date.now());
     }, 1000);
     return () => clearInterval(t);
   }, []);
 
   const acknowledgeArb = useCallback(async (id: string) => {
-    setArbs((prev) => prev.filter((a) => a.id !== id));
     const { error } = await supabase
       .from("arbs")
       .update({ is_acknowledged: true })
       .eq("id", id);
-    if (error) console.error("acknowledgeArb failed", error);
-  }, []);
+    if (error) { console.error("acknowledgeArb failed", error); return; }
+    await queryClient.invalidateQueries({ queryKey: ["active-arbs"] });
+  }, [queryClient]);
 
-  return { arbs, acknowledgeArb, tick };
+  const arbs = (query.data ?? []).filter((a) => Date.parse(a.expiresAt) > now);
+  return { arbs, acknowledgeArb, tick: now, now, error: query.error, isPending: query.isPending, refetch: query.refetch };
 }
