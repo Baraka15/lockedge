@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { countdownLabel, hourlyMetrics, potentialProfit, secondsUntil, type ProfitSnapshot } from "./live-metrics";
+import { countdownLabel, hourlyMetrics, potentialProfit, secondsUntil, type ProfitSnapshot } from "../../src/lib/arb/live-metrics";
 
 const now = Date.parse("2026-10-10T12:07:00Z");
 const quote: ProfitSnapshot = {
