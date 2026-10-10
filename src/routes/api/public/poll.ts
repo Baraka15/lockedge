@@ -33,7 +33,7 @@ export const Route = createFileRoute("/api/public/poll")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const denied = unauthorized(request);
+        const denied = await unauthorized(request);
         if (denied) return denied;
         const intervalMs = Number(process.env.POLL_INTERVAL_MS ?? 2000);
 
@@ -59,7 +59,7 @@ export const Route = createFileRoute("/api/public/poll")({
         });
       },
       GET: async ({ request }) => {
-        const denied = unauthorized(request);
+        const denied = await unauthorized(request);
         if (denied) return denied;
         // Allow manual triggering / health probe via GET
         const result = await runPollCycle();
