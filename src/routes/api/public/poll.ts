@@ -10,11 +10,22 @@ import { runPollCycle } from "@/lib/engine.server";
  * When POLL_SECRET is set, callers must send `Authorization: Bearer <secret>`.
  * Leaving it unset keeps the endpoint open (dev / initial setup only).
  */
-function unauthorized(request: Request): Response | null {
+async function unauthorized(request: Request): Promise<Response | null> {
   const secret = process.env.POLL_SECRET;
   if (!secret) return null;
   const header = request.headers.get("authorization") ?? "";
   if (header === `Bearer ${secret}`) return null;
+  // Signed-in dashboard users may trigger a scan with their session token.
+  const token = header.startsWith("Bearer ") ? header.slice(7) : "";
+  if (token) {
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data, error } = await supabaseAdmin.auth.getUser(token);
+      if (!error && data.user) return null;
+    } catch (e) {
+      console.error("[poll] token check failed", e);
+    }
+  }
   return Response.json({ ok: false, error: "Unauthorized" }, { status: 401 });
 }
 
@@ -22,7 +33,7 @@ export const Route = createFileRoute("/api/public/poll")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const denied = unauthorized(request);
+        const denied = await unauthorized(request);
         if (denied) return denied;
         const intervalMs = Number(process.env.POLL_INTERVAL_MS ?? 2000);
 
@@ -48,7 +59,7 @@ export const Route = createFileRoute("/api/public/poll")({
         });
       },
       GET: async ({ request }) => {
-        const denied = unauthorized(request);
+        const denied = await unauthorized(request);
         if (denied) return denied;
         // Allow manual triggering / health probe via GET
         const result = await runPollCycle();

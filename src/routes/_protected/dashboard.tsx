@@ -113,7 +113,12 @@ function Dashboard() {
     setScanning(true);
     try {
       // A full multi-bookmaker scan can take up to a minute.
-      await fetchJson<{ ok: boolean }>("/api/public/poll", { timeoutMs: 90_000 });
+      const { data: sess } = await supabase.auth.getSession();
+      const token = sess.session?.access_token;
+      await fetchJson<{ ok: boolean }>("/api/public/poll", {
+        timeoutMs: 90_000,
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
       toast.success("Scan complete");
     } catch (err) {
       toast.error(`Scan failed: ${describeNetworkError(err)}`);
