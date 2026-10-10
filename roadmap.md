@@ -1,5 +1,9 @@
 # Roadmap
 
+- [x] Restore reliable live arb refresh and synchronized countdowns
+- [x] Render rolling hourly potential and recorded settlement profits with freshness indicators
+- [x] Verify live dashboard and financial calculations
+
 - [x] Manual-placement execution assistant (PLACE BET revalidation, ABORT, executions audit)
 - [x] Local-only Puppeteer QA under `qa/`
 - [x] Vercel deployment config + DEPLOY_VERCEL.md (secondary option)

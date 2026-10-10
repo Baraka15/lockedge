@@ -74,7 +74,14 @@ import { BotHealthPanel } from "@/components/BotHealthPanel";
 import { PerformanceAnalytics } from "@/components/PerformanceAnalytics";
 
 export const Route = createFileRoute("/_protected/agent")({
-  head: () => ({ meta: [{ title: "Agent Command Center" }] }),
+  head: () => ({ meta: [
+    { title: "Operations & Health — LockEdge" },
+    { name: "description", content: "Monitor LockEdge scan health and manual execution records." },
+    { property: "og:title", content: "Operations & Health — LockEdge" },
+    { property: "og:description", content: "Review scan health and manual execution records in LockEdge." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: AgentCommandCenter,
 });
 

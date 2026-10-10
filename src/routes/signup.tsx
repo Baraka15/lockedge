@@ -7,7 +7,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/signup")({
-  head: () => ({ meta: [{ title: "Create account — Sure Bets" }] }),
+  head: () => ({ meta: [
+    { title: "Create account — LockEdge" },
+    { name: "description", content: "Create your LockEdge account for live arbitrage quotes and personal Telegram alerts." },
+    { property: "og:title", content: "Create account — LockEdge" },
+    { property: "og:description", content: "Join LockEdge to follow live arbitrage quotes and set up your alerts." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: SignupPage,
 });
 
