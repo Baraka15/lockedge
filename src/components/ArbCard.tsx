@@ -9,7 +9,7 @@ import {
   TrendingUp,
   X,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { countdownLabel, secondsUntil } from "@/lib/arb/live-metrics";
 import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
@@ -116,9 +116,48 @@ export function ArbCard({ arb, onAcknowledge, now = Date.now() }: Props) {
     }
     setResult(null);
     setBlockMsg(null);
+    setDone({});
+    setDriftMsg(null);
     if (outcome === "accepted") onAcknowledge(arb.id);
     else if (outcome === "aborted") toast.info("Workflow aborted.");
   };
+
+  // ---- Placement checklist + live odds-move watch (read-only re-checks) ----
+  const [done, setDone] = useState<Record<string, boolean>>({});
+  const [driftMsg, setDriftMsg] = useState<string | null>(null);
+  const baseline = useRef<Record<string, number>>({});
+
+  useEffect(() => {
+    if (!result?.ok) return;
+    baseline.current = Object.fromEntries(
+      result.legs.map((l) => [`${l.name}|${l.bookmaker}`, l.currentOdds ?? 0]),
+    );
+    let stop = false;
+    const id = setInterval(async () => {
+      try {
+        const res = await verify({ data: { arbId: arb.id } });
+        if (stop) return;
+        const moved = res.legs.find((l) => {
+          const b = baseline.current[`${l.name}|${l.bookmaker}`];
+          return !l.currentOdds || (b && Math.abs(l.currentOdds - b) / b > 0.005);
+        });
+        if (moved || !res.ok) {
+          const m = moved
+            ? `Odds moved on ${moved.bookmaker} (${moved.name}) — consider ABORT.`
+            : res.message ?? "ARB INVALID — ODDS CHANGED.";
+          setDriftMsg(m);
+          toast.warning(m);
+        }
+      } catch {
+        /* transient; next tick retries */
+      }
+    }, 5000);
+    return () => {
+      stop = true;
+      clearInterval(id);
+    };
+  }, [result?.ok, result?.executionId]);
+
 
 
 
@@ -278,8 +317,32 @@ export function ArbCard({ arb, onAcknowledge, now = Date.now() }: Props) {
           {result.totalStake.toFixed(2)}
           {result.snapshotAgeSeconds !== null && <> • data {result.snapshotAgeSeconds}s old</>}
           <div className="mt-1 font-normal text-emerald-700/80 dark:text-emerald-300/80">
-            Match pages opened — choose the selection and type the stake yourself.
+            Match pages opened — choose the selection and type the stake yourself. Odds re-checked every 5s.
           </div>
+          <ul className="mt-2 space-y-1">
+            {orderedOutcomes.map((o, i) => {
+              const k = `${o.name}|${o.bookmaker}`;
+              return (
+                <li key={k}>
+                  <label className="flex items-center gap-2 text-foreground">
+                    <input
+                      type="checkbox"
+                      checked={!!done[k]}
+                      onChange={(e) => setDone((d) => ({ ...d, [k]: e.target.checked }))}
+                    />
+                    Leg {i + 1}: {o.name} on <span className="capitalize">{o.bookmaker}</span> placed
+                  </label>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+
+      {driftMsg && (
+        <div className="mt-3 flex items-center gap-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-sm font-semibold text-warning">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          {driftMsg}
         </div>
       )}
 
